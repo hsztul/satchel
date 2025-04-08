@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Satchel - Collect. Organize. Explore.",
-  description: "A collaborative platform for startup co-founders to collect, organize, and explore articles, companies, and ideas.",
+  title: "Satchel - Your Knowledge Hub",
+  description: "Store, organize, and explore articles, companies, and ideas",
 };
 
 export default function RootLayout({

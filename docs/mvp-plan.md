@@ -5,16 +5,16 @@
 ### Goals
 
 - **Centralized Idea Management**: Provide a platform for users to store and organize entries (articles, companies, and notes).
-- **AI-Driven Connections**: Utilize AI Agents to generate summaries, key points, and connections between different types of entries.
+- **AI-Driven Content Processing**: Utilize AI to generate summaries, key points, and metadata for different types of entries.
 - **Interactive Exploration**: Facilitate an interactive chat interface for users to explore their stored data and generate new ideas.
-- **User Accessibility**: Ensure secure and private access for multiple users with persistent storage.
+- **User Accessibility**: Ensure secure and private access with Google authentication via Clerk.
 
 ### Success Criteria
 
-- Successful implementation of AI Agents that can process and generate summaries and connections.
-- Stable and intuitive chat interface that allows seamless interaction with stored data.
-- Proper integration of user authentication and data storage solutions.
-- Positive user feedback on the usability and utility of the app for exploring startup ideas.
+- Successful implementation of background processing that generates AI-powered summaries and insights.
+- Stable and intuitive UI with clear status indications for processing stages.
+- Proper integration of user authentication using Clerk with Google Auth.
+- Efficient data storage and retrieval using Supabase, including vector embeddings for similarity search.
 
 ---
 
@@ -27,14 +27,14 @@
 - **Key Deliverables**:
   - Project repository setup.
   - Authentication setup using Clerk with Google Auth.
-  - Initial database setup using neon.tech.
+  - Initial database setup using Supabase.
 
 - **Technical Tasks**:
-  - Set up project environment and version control.
-  - Configure Clerk for user authentication.
-  - Integrate neon.tech for data storage.
-  - Define unified Entry schema with type-specific metadata.
-  - Configure vector store for entry metadata and chatting with stored data using LLM.
+  - Set up Next.js project environment and version control.
+  - Configure Clerk middleware for user authentication with Google.
+  - Set up Supabase for data storage and vector embeddings.
+  - Define Entry schema with type-specific metadata and processing state tracking.
+  - Set up routing structure with Next.js route groups.
 
 ### Sprint 2: Core UI Components
 
@@ -42,57 +42,62 @@
 
 - **Key Deliverables**:
   - Basic UI design using ShadCN components and Tailwind CSS.
-  - Interface for adding entries (articles, companies, and notes).
-  - Dashboard for viewing and filtering entries by type.
+  - Dashboard interface with entry listing and processing status indicators.
+  - Entry creation forms for different entry types (article, company, note).
 
 - **Technical Tasks**:
-  - Implement Tailwind CSS for styling.
-  - Build input forms for adding different types of entries.
-  - Create dashboard components for entry browsing and filtering.
-  - Ensure responsive design and user navigation.
+  - Implement Tailwind CSS with ShadCN for component styling.
+  - Build dashboard with sorting by date and visual processing indicators.
+  - Create entry creation forms with appropriate validation.
+  - Implement progress bar for processing status feedback.
+  - Ensure responsive design across different devices.
 
-### Sprint 3: Key Feature Implementation
+### Sprint 3: Background Processing Implementation
 
-**Objectives**: Develop the core functionalities involving AI Agents for summarization and connection drawing.
+**Objectives**: Develop the queueing system and background processing for entry metadata generation.
 
 - **Key Deliverables**:
-  - Implement AI Agents for processing entry metadata based on type.
-  - Develop logic for connection discovery between entries.
-  - Create entry detail views with metadata visualization.
+  - Implement background processing queue using Supabase.
+  - Develop type-specific processing pipelines for articles, companies, and notes.
+  - Create entry detail views with AI-generated content and metadata.
 
 - **Technical Tasks**:
-  - Integrate Vercel AI SDK for LLM selection.
-  - Build type-specific metadata processing pipelines.
-  - Develop backend logic for AI Agents' operations.
-  - Set up vector store for entry metadata indexing and similarity search.
+  - Integrate Vercel AI SDK for LLM integrations.
+  - Set up Firecrawl.dev integration for web scraping article and company content.
+  - Build processing pipeline with state tracking (started, processing, complete).
+  - Implement vector storage for embeddings in Supabase.
+  - Create entry detail view with metadata visualization.
 
-### Sprint 4: API Integration
+### Sprint 4: Entry Management Features
 
-**Objectives**: Integrate external APIs to enhance data processing and retrieval.
+**Objectives**: Implement complete entry management features including comments, editing, and deletion.
 
 - **Key Deliverables**:
-  - API setup for scanning URLs and extracting content.
-  - API endpoints for entry management and metadata retrieval.
-  - Comment recording and connection analysis.
+  - API endpoints for entry CRUD operations.
+  - Comment adding and viewing functionality.
+  - Entry editing and deletion capabilities.
 
 - **Technical Tasks**:
-  - Implement API clients for external data fetching.
-  - Develop unified backend endpoints for all entry types.
-  - Create comment management and connection discovery features.
-  - Ensure secure and efficient data handling.
+  - Implement API endpoints for entry operations.
+  - Develop comment system with user attribution.
+  - Create entry edit and delete functionality with appropriate validation.
+  - Ensure proper state updates after operations.
+  - Implement appropriate error handling for all operations.
 
-### Sprint 5: User Flow Refinement
+### Sprint 5: Explore Feature Implementation
 
-**Objectives**: Refine the user flow and enhance the interactive exploration feature.
+**Objectives**: Implement the explore feature for chatting with stored data and generating new ideas.
 
 - **Key Deliverables**:
-  - Interactive chat interface for exploring stored data.
-  - Feedback mechanism for user interaction and new data entry.
+  - Interactive chat interface using Vercel AI SDK.
+  - Idea generation based on stored entry data and user prompts.
 
 - **Technical Tasks**:
-  - Develop chat interface using Vercel AI SDK.
-  - Integrate feedback loop for AI Agents during user interaction.
-  - Optimize user flow for seamless experience.
+  - Develop chat interface with streaming responses.
+  - Implement retrieval-augmented generation from the vector store.
+  - Create idea generation prompts and formatting.
+  - Optimize response quality and relevance to user queries.
+  - Ensure proper context management during chat sessions.
 
 ### Sprint 6: Testing & Deployment
 
@@ -119,8 +124,10 @@
 
 ## 4. Deployment Strategy
 
-- Utilize a CI/CD pipeline for automated testing and deployment.
-- Deploy the app on a scalable cloud platform such as Vercel for easy scaling.
+- Deploy the application on Vercel for hosting.
+- Set up GitHub Actions for continuous integration.
+- Implement automated testing pipeline for all code changes.
+- Configure deployments to trigger after successful testing with rollback capabilities.
 - Ensure secure deployment practices, particularly for user data protection.
 
 ---

@@ -1,102 +1,78 @@
-# Satchel
+# Satchel - Your Knowledge Hub
 
-Satchel is a collaborative platform designed to help users, particularly startup co-founders, collect, organize, and explore articles, companies, and ideas to generate insights and connections using Large Language Models (LLMs).
+Satchel is a collaborative platform designed to help users collect, organize, and explore articles, companies, and ideas to generate insights and connections using Large Language Models (LLMs).
 
-## Features
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-- Centralized hub for storing and organizing articles, companies, and thoughts
-- AI-driven connections and insights between stored content
-- Interactive chat interface for exploring stored data
-- Authentication using Clerk with Google Auth
+## Project Overview
 
-## Tech Stack
+Satchel allows users to:
+- Store and organize articles, companies, and notes
+- Generate AI-powered summaries and key points
+- Explore connections between stored data through a chat interface
+- Receive insights and new ideas based on collected knowledge
 
-- **Frontend**: Next.js with Tailwind CSS and ShadCN UI
+## Technology Stack
+
+- **Frontend**: Next.js with App Router
+- **UI**: Tailwind CSS with ShadCN components
 - **Authentication**: Clerk with Google Auth
-- **Database**: PostgreSQL via Neon.tech
-- **Vector Store**: Pinecone for similarity search and embeddings
-- **AI/LLM**: OpenAI via LangChain integration
-
-## Development Progress
-
-### Sprint 1: Foundation & Project Setup (Current)
-
-- [x] Project repository setup with Next.js
-- [x] Initial UI components using ShadCN and Tailwind CSS
-- [x] Authentication setup with Clerk
-- [x] Database schema definition
-- [x] Vector store integration for entries
-
-### Future Sprints
-
-- [ ] Core UI development and data visualization
-- [ ] AI Agent implementation
-- [ ] Exploration features and chat interface
-- [ ] Testing and deployment
+- **Database**: Supabase (PostgreSQL)
+- **Vector Store**: Supabase for similarity search
+- **AI Integration**: Vercel AI SDK
 
 ## Getting Started
 
-### Prerequisites
+First, run the development server:
 
-- Node.js 18+ 
-- NPM 9+
-- Clerk account (for authentication)
-- Neon.tech account (for PostgreSQL database)
-- Pinecone account (for vector embeddings)
-- OpenAI API key
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-### Environment Setup
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Create a `.env.local` file with the following variables:
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Environment Setup
+
+Create a `.env.local` file in the root directory with the following variables:
 
 ```
-# Database
-DATABASE_URL=your_neon_db_connection_string
-
 # Clerk Authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
 
-# OpenAI
-OPENAI_API_KEY=your_openai_api_key
-
-# Pinecone
-PINECONE_API_KEY=your_pinecone_api_key
-PINECONE_ENVIRONMENT=your_pinecone_environment
-PINECONE_INDEX=satchel-entries
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
-
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Run the development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
 ## Project Structure
 
-```
-satchel/
-├── src/
-│   ├── app/              # Next.js app router pages
-│   ├── components/       # Reusable UI components
-│   ├── lib/              # Utility functions and libraries
-│   │   ├── db/           # Database connection and schema
-│   │   └── vectorstore/  # Vector store integration
-│   └── middleware.ts     # Authentication middleware
-└── docs/                 # Project documentation
-    ├── prd.md            # Product Requirements Document
-    ├── tech-spec.md      # Technical Specification
-    └── mvp-plan.md       # MVP Development Plan
-```
+- `src/app/(auth)/*` - Authentication pages (sign-in, sign-up)
+- `src/app/(main)/*` - Main application pages (dashboard, entry creation/viewing)
+- `src/lib/*` - Utility functions and API clients
+- `src/components/*` - Reusable UI components
 
-## Contributing
+## Learn More
 
-1. Follow the sprint plan in `docs/mvp-plan.md`
-2. Ensure code follows project conventions and coding standards
-3. Test your changes before submitting
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

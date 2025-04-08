@@ -16,13 +16,13 @@
 
 ### Databases
 
-- **Primary Storage**: Neon.tech (PostgreSQL)
-- **Vector Store**: Pinecone (for similarity search and embeddings)
+- **Primary Storage**: Supabase (PostgreSQL)
+- **Vector Store**: Supabase (for similarity search and embeddings)
 
 ### Third-party Services
 
 - **Authentication**: Clerk (Google Auth integration)
-- **LLM Services**: OpenAI/Anthropic via Vercel AI SDK
+- **LLM Services**: OpenAI/Anthropic via Vercel AI SDK (https://sdk.vercel.ai/docs/ai-sdk-core)
 - **Web Scraping**: [Firecrawl.dev](http://Firecrawl.dev) ([https://docs.firecrawl.dev/api-reference/endpoint/scrape](https://docs.firecrawl.dev/api-reference/endpoint/scrape))
 
 ---
@@ -31,16 +31,16 @@
 
 ### High-level Design
 
-- **Frontend**: Next.js application with server-side rendering for dynamic content display.
+- **Frontend**: Next.js application (latest version)
 - **Backend**: RESTful API managing CRUD operations and AI interactions.
-- **Database**: PostgreSQL for structured data and Pinecone for vector-based search and retrieval.
-- **AI Agents**: Agents for specific tasks like article summarization, company background research, connection drawing, and chat interactions.
+- **Database**: PostgreSQL for structured data and Supabase for vector-based search and retrieval.
+- **AI Agents**: Agents for specific tasks like article summarization, company background research, and chat interactions. 
+- **Queue**: Queue for processing background tasks that include summarization and background research.
 
 ### Components and Interactions
 
 - **User Interface**: Minimalistic UI with ShadCN and Tailwind CSS.
-- **API Gateway**: Central point for all client-server communications.
-- **AI Agent Services**: Handles tasks like summarization, connection finding, and chat analysis.
+- **AI Agent Services**: Handles tasks like summarization, research, and chat analysis.
 - **Vector Store Management**: Stores and retrieves vector embeddings for articles, companies, and thoughts.
 
 ---
@@ -55,6 +55,7 @@
     {
       "type": "string", // "article", "company", or "note"
       "url": "string",  // optional for notes
+      "processingState": "string", // "started", "completed", "inProcess"
       "metadata": {
         // Type-specific fields:
         // For articles: title, summary, keyPoints, author, etc.
@@ -69,6 +70,7 @@
       "entryId": "string",
       "type": "string",
       "url": "string",
+      "processingState": "string", // "started", "completed", "inProcess"
       "metadata": {
         // All entry metadata including AI-generated content
       }
@@ -87,6 +89,7 @@
         "entryId": "string",
         "type": "string",
         "url": "string",
+        "processingState": "string", // "started", "completed", "inProcess"
         "metadata": { /* Entry metadata */ }
       }]
     }
@@ -144,6 +147,7 @@
 | userId | UUID | Owner of the entry |
 | type | String | "article", "company", or "note" |
 | url | String | Optional, for articles & companies |
+| processingState | String | "started", "completed", "inProcess" |
 | createdAt | DateTime | Creation timestamp |
 | updatedAt | DateTime | Last update timestamp |
 | metadata | JSON | Type-specific data and AI-generated content |
@@ -171,9 +175,9 @@
 ## 6. Integration Points
 
 - **Vercel AI SDK**: For leveraging various LLMs, facilitating tasks such as summarization and conversation.
-- **Pinecone**: For storing and retrieving vector embeddings.
+- **Supabase**: For storing and retrieving vector embeddings.
 - **Firecrawl.dev**: For extracting data from company websites and getting article content.
-- **OpenAI**: For AI-driven services like summarization and chat.
+- **OpenAI/Anthropic**: For AI-driven services like summarization and chat.
 
 ---
 
@@ -181,7 +185,7 @@
 
 - **Expected Load**: Low to moderate, dependent on user engagement.
 - **Optimization Approaches**:
-  - Efficient vector search using Pinecone.
+  - Efficient vector search using Supabase.
   - Caching frequently accessed data.
   - Asynchronous processing for web scraping and summarization tasks.
 
@@ -202,6 +206,7 @@
   - Use GitHub Actions for continuous integration.
   - Automated testing pipeline for all code changes.
   - Deployments triggered post successful testing, with rollback capabilities.
+
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The proposed app is a collaborative platform designed to help users, particularly startup co-founders, collect, organize, and explore articles, companies, and ideas to generate insights and connections using Large Language Models (LLMs). It addresses the challenge of storing and connecting diverse pieces of information and fosters an environment where "no idea is too crazy" and users are encouraged to "think bigger."
+The proposed app, Satchel, is a collaborative platform designed to help users, particularly startup co-founders, collect, organize, and explore articles, companies, and ideas to generate insights and connections using Large Language Models (LLMs). It addresses the challenge of storing and connecting diverse pieces of information and fosters an environment where "no idea is too crazy" and users are encouraged to "think bigger."
 
 ---
 
@@ -31,10 +31,6 @@ To create a seamless and intuitive platform that empowers users to explore and d
 
 - **Entrepreneurs**: Individuals seeking to develop new business ideas through research and exploration.
 
-### Tertiary Users
-
-- **Business Analysts and Researchers**: Professionals requiring tools to organize and draw insights from large volumes of information.
-
 ---
 
 ## 4. Key Features and Requirements
@@ -44,8 +40,8 @@ To create a seamless and intuitive platform that empowers users to explore and d
 
 - **AI Agents**
   - Article and Company Summary Agents: Generate summaries and key points for new entries.
-  - Connection Agent: Analyze thoughts to draw connections between articles and companies.
   - Exploration Agent: Monitors chat interactions to identify and save new insights.
+  -Queue for processing background tasks that include summarization, exploration, and background research.
 
 - **Interactive Chat Interface**
   - Engage with stored content using a chat interface, supported by a vector store for data management.
@@ -67,6 +63,54 @@ To create a seamless and intuitive platform that empowers users to explore and d
 - *As a user, I want to edit my thoughts, article and company summaries*
 - *As a user, I want to explore my stored ideas and resources through a chat interface, so that I can discover new connections and insights.*
 - *As a user, I want to receive regular summaries of my stored content, so that I can understand how my ideas align with broader themes.*
+
+---
+
+## User Flow
+
+### 1. Authentication
+- Users sign in with Google account via Clerk
+- Simple login/logout functionality
+- No user profile management in v1
+
+### 2. Dashboard
+Main features:
+- List of all user's entries
+- "Create New" button
+- Basic sorting by date
+- Display status of processing for each entry (started, processing, complete)
+- Visual indication of processing stages
+
+### 3. Entry Creation
+- Select entry type (article, company, note)
+- Fill in required field (URL for articles and companies, note text for notes)
+- Submit entry
+- Display processing status and progress with a progress bar at the bottom of the page
+- After entry is created, it gets added to a supabase queue to be processed by background tasks to get article content, generate summaries and key points
+- Once processing is complete, the entry is marked as completed and the metadata is updated
+- The entry is then available for viewing
+
+#### Entry Background Processing
+- The background processing is handled by a queue in Supabase
+- The queue is processed by a background job called 'entry-agent'
+- "entry-agent" is a Vercel AI SDK agent that handles says if the entry is an article or company, and will pass it onto the next appropriate agent
+- "article-content-agent" is a Vercel AI SDK agent that handles article processing using the Firecrawl.dev API to get article content. This agent will pass the article content to the next agent, 'article-summary-agent', which will generate summaries and key points using OpenAI via Vercel AI SDK. This all gets saved to the entry's metadata
+- "company-sumary-agent" is a Vercel AI SDK agent that handles company processing using the Perplexity API to get company information. This all gets saved to the entry's metadata
+- The background job updates the entry's processing state 
+- Once processing is complete, the entry is marked as completed
+
+### 4. View Entry Details
+- View entry details and metadata and AI-generated content
+- View and add comments
+- Edit entry content
+- Delete entry
+
+### 5. Explore
+- Chat with stored data
+- Generate new ideas based on stored data and user prompts
+
+### 6. Logout
+- Simple logout functionality
 
 ---
 

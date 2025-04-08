@@ -1,8 +1,0 @@
-# Neon PostgreSQL Connection String
-# Copy this to your .env file
-
-DATABASE_URL="postgresql://neondb_owner:npg_ZTgqSi4D1ybX@ep-patient-tooth-a5ebtyiy-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
-
-# After adding this to your .env file, run:
-# npx prisma migrate dev --name init
-# npx prisma generate

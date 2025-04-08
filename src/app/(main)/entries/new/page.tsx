@@ -1,33 +1,30 @@
-"use client";
-
-import EntryForm, { EntryType } from "@/components/EntryForm";
-import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EntryForm } from "@/components/EntryForm";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { EntryType } from "@/types";
 
-export default function NewEntryPage() {
-  const searchParams = useSearchParams();
-  const type = searchParams.get("type") as EntryType | null;
-  
+export default async function NewEntryPage({ 
+  searchParams 
+}: { 
+  searchParams: Promise<{ type?: string }> | { type?: string }
+}) {
+  // Await the searchParams if it's a promise
+  const params = await Promise.resolve(searchParams);
+  const entryType = params.type as EntryType | undefined;
+
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Create New Entry</h1>
-        <p className="text-muted-foreground">Add an article, company, or note to your collection</p>
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <Link 
+          href="/entries" 
+          className="text-sm text-slate-500 hover:text-slate-700 mb-2 inline-block"
+        >
+          ← Back to entries
+        </Link>
+        <h1 className="text-2xl font-bold">Create New Entry</h1>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>New Entry</CardTitle>
-          <CardDescription>
-            Fill out the form below to create a new entry
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <EntryForm initialType={type} />
-        </CardContent>
-      </Card>
+      <EntryForm initialValues={{ type: entryType || 'article' }} />
     </div>
   );
 }
