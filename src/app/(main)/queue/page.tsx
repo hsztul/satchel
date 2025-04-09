@@ -15,13 +15,11 @@ export default async function QueuePage() {
     redirect("/sign-in");
   }
   
-  const userId = user.id;
-
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Processing Queue</h1>
       <Suspense fallback={<QueueDashboardSkeleton />}>
-        <QueueDashboard userId={userId} />
+        <QueueDashboard />
       </Suspense>
     </div>
   );

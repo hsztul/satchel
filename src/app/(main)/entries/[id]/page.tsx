@@ -2,12 +2,6 @@ import { Entry } from "@/types";
 import { notFound } from "next/navigation";
 import { EntryClientPage } from "./client-page";
 
-interface EntryPageProps {
-  params: {
-    id: string;
-  };
-}
-
 // Fetch entry data from API (server component)
 async function getEntry(id: string): Promise<Entry | null> {
   try {
@@ -20,10 +14,13 @@ async function getEntry(id: string): Promise<Entry | null> {
   }
 }
 
-// Server component wrapper
-export default async function EntryPage(props: EntryPageProps) {
-  // Directly destructure params
-  const { id } = props.params;
+// Server component wrapper - properly typed for Next.js 15
+export default async function EntryPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params;
   
   const initialEntry = await getEntry(id);
   

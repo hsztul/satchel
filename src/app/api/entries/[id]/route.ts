@@ -4,10 +4,13 @@ import { entriesApi } from "@/lib/supabase/client";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Verify authentication
   const { userId } = getAuth(request);
+  
+  // Resolve params promise
+  const resolvedParams = await params;
   
   // Temporarily allow unauthenticated requests for debugging
   // if (!userId) {
@@ -18,7 +21,7 @@ export async function GET(
   // }
   
   try {
-    const entryId = params.id;
+    const entryId = resolvedParams.id;
     
     // Get the entry from Supabase
     const entry = await entriesApi.getEntry(entryId);

@@ -25,7 +25,7 @@ export const getMockEntries = (): Entry[] => [
     userId: "user-1",
     type: "company",
     url: "https://example.com/company",
-    processingState: "inProcess",
+    processingState: "processing",
     processingProgress: 50,
     createdAt: new Date("2025-04-02").toISOString(),
     updatedAt: new Date("2025-04-02").toISOString(),

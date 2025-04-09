@@ -5,10 +5,10 @@ import { EntryType } from "@/types";
 export default async function NewEntryPage({ 
   searchParams 
 }: { 
-  searchParams: Promise<{ type?: string }> | { type?: string }
+  searchParams: Promise<{ type?: string }>
 }) {
-  // Await the searchParams if it's a promise
-  const params = await Promise.resolve(searchParams);
+  // Await the searchParams
+  const params = await searchParams;
   const entryType = params.type as EntryType | undefined;
 
   return (
