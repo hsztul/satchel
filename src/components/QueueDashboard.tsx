@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { QueueItem, queueApi } from "@/lib/supabase/queue";
 import { createClient } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
 import { RefreshCw, Play, AlertCircle } from "lucide-react";
+import { QueueItem } from "@/lib/supabase/queue";
 
-interface QueueDashboardProps {
-  userId: string;
-}
-
-export function QueueDashboard({ userId }: QueueDashboardProps) {
+export function QueueDashboard() {
   const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -74,22 +70,9 @@ export function QueueDashboard({ userId }: QueueDashboardProps) {
     // Fetch queue items initially
     fetchQueueItems();
     
-    // Subscribe to changes in the processing_queue table
-    const subscription = supabase
-      .channel('queue-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'satchel',
-        table: 'processing_queue'
-      }, () => {
-        // Refresh the queue items when there's a change
-        fetchQueueItems();
-      })
-      .subscribe();
-      
     // Clean up subscription when component unmounts
     return () => {
-      supabase.channel('queue-changes').unsubscribe();
+      // No need to unsubscribe as the useEffect will clean up automatically
     };
   }, []);
 

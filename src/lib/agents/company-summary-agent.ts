@@ -264,7 +264,7 @@ Ensure all information is factual and current. If specific data points are not a
   private async updateProcessingState(
     entryId: string, 
     progress: number, 
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
       // Import dynamically to avoid circular dependencies
@@ -274,7 +274,7 @@ Ensure all information is factual and current. If specific data points are not a
         // Mark as completed when progress is 100%
         await entriesApi.updateProcessingState(entryId, "completed", progress, metadata);
       } else {
-        await entriesApi.updateProcessingState(entryId, "in_process" as any, progress, metadata);
+        await entriesApi.updateProcessingState(entryId, "processing", progress, metadata);
       }
     } catch (error) {
       console.error("Error updating processing state:", error);

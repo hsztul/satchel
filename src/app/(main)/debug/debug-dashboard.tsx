@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { queueApi } from "@/lib/supabase/queue";
@@ -16,7 +16,7 @@ export default function DebugDashboard() {
   const [processingResult, setProcessingResult] = useState<string | null>(null);
 
   // Fetch queue items and entries
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsRefreshing(true);
       
@@ -44,7 +44,7 @@ export default function DebugDashboard() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, []);
 
   const fetchQueueItems = async () => {
     try {

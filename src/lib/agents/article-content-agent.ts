@@ -1,5 +1,6 @@
 import { AgentContext, Agent, ArticleContentAgentResult } from "./types";
 import FirecrawlApp from "@mendable/firecrawl-js";
+import { ProcessingState } from "@/types";
 
 /**
  * Article Content Agent
@@ -38,7 +39,7 @@ export class ArticleContentAgent implements Agent {
       const { content, metadata } = await this.fetchArticleContent(entry.url);
       
       // Prepare metadata to save
-      const entryMetadata: Record<string, any> = {
+      const entryMetadata: Record<string, unknown> = {
         content,
         title: metadata?.title || "Processing article...",
         source: entry.url,
@@ -73,7 +74,7 @@ export class ArticleContentAgent implements Agent {
     }
   }
 
-  private async fetchArticleContent(url: string): Promise<{ content: string; metadata?: Record<string, any> }> {
+  private async fetchArticleContent(url: string): Promise<{ content: string; metadata?: Record<string, unknown> }> {
     try {
       console.log(`🔍 ArticleContentAgent: Fetching content for URL: ${url}`);
       
@@ -95,7 +96,7 @@ export class ArticleContentAgent implements Agent {
       }
       
       // Type assertion for response to help TypeScript
-      const typedResponse = response as Record<string, any>;
+      const typedResponse = response as unknown as Record<string, unknown>;
       
       // Check if response has success flag
       if ('success' in typedResponse && !typedResponse.success) {
@@ -108,7 +109,7 @@ export class ArticleContentAgent implements Agent {
       // Handle different response structures
       if ('data' in typedResponse && typedResponse.data) {
         // Standard API response structure
-        const data = typedResponse.data as Record<string, any>;
+        const data = typedResponse.data as Record<string, unknown>;
         if ('markdown' in data && typeof data.markdown === 'string') {
           markdown = data.markdown;
           console.log(`✅ ArticleContentAgent: Successfully extracted markdown content`);
@@ -125,11 +126,11 @@ export class ArticleContentAgent implements Agent {
       }
       
       // Extract metadata if available
-      let metadata: Record<string, any> = {};
+      let metadata: Record<string, unknown> = {};
       if ('data' in typedResponse && typedResponse.data) {
-        const data = typedResponse.data as Record<string, any>;
+        const data = typedResponse.data as Record<string, unknown>;
         if ('metadata' in data && data.metadata) {
-          metadata = data.metadata as Record<string, any>;
+          metadata = data.metadata as Record<string, unknown>;
           console.log(`📝 ArticleContentAgent: Extracted metadata: ${JSON.stringify(metadata)}`);
         }
       }
@@ -162,12 +163,13 @@ export class ArticleContentAgent implements Agent {
   private async updateProcessingState(
     entryId: string, 
     progress: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
       // Import dynamically to avoid circular dependencies
       const { entriesApi } = await import("@/lib/supabase/client");
-      await entriesApi.updateProcessingState(entryId, "inProcess", progress, metadata);
+      const processingState: ProcessingState = "processing";
+      await entriesApi.updateProcessingState(entryId, processingState, progress, metadata);
     } catch (error) {
       console.error("Error updating processing state:", error);
     }

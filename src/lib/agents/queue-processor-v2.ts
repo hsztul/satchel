@@ -217,7 +217,7 @@ export class QueueProcessorV2 {
       }
       
       // Determine if there's a next agent to run
-      const nextAgent = (result as any).nextAgent;
+      const nextAgent = (result as unknown as { nextAgent: string }).nextAgent;
       
       if (nextAgent) {
         console.log(`Adding next agent ${nextAgent} to queue for entry ${entry.id}`);

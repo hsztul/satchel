@@ -78,7 +78,7 @@ export class QueueProcessor {
         }
         
         // Determine the next agent to run
-        currentAgentName = (result as any).nextAgent || null;
+        currentAgentName = (result as { nextAgent?: string }).nextAgent || "";
       }
       
       console.log(`Completed processing entry ${entry.id}`);

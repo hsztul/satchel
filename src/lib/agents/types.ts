@@ -2,7 +2,7 @@ import { Entry, EntryType } from "@/types";
 
 export interface AgentResult {
   success: boolean;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   error?: string;
 }
 

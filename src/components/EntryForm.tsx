@@ -62,7 +62,7 @@ export function EntryForm({
     } else if (initialValues?.type) {
       form.setValue('type', initialValues.type);
     }
-  }, [form.setValue, typeFromUrl, initialValues?.type]);
+  }, [form.setValue, typeFromUrl, initialValues?.type, form]);
 
   // Handle form submission
   const onSubmit = async (values: FormValues) => {
