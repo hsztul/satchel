@@ -11,6 +11,7 @@ interface EntryListProps {
 
 export function EntryList({ initialEntries }: EntryListProps) {
   const [entries, setEntries] = useState<Entry[]>(initialEntries);
+  const [showDebug, setShowDebug] = useState(false);
 
   // Set up Supabase real-time subscription
   useEffect(() => {
@@ -48,6 +49,29 @@ export function EntryList({ initialEntries }: EntryListProps) {
 
   return (
     <div>
+      {/* Debug information section */}
+      <div className="mb-4">
+        <button 
+          onClick={() => setShowDebug(!showDebug)}
+          className="text-xs text-slate-500 hover:text-slate-700 bg-slate-100 px-2 py-1 rounded"
+        >
+          {showDebug ? "Hide Debug Info" : "Show Debug Info"}
+        </button>
+        
+        {showDebug && (
+          <div className="mt-2 p-4 bg-slate-100 rounded text-xs">
+            <p><strong>Total Entries:</strong> {entries.length}</p>
+            <p><strong>Entry IDs:</strong></p>
+            <ul className="list-disc pl-4">
+              {entries.map(entry => (
+                <li key={entry.id}>
+                  {entry.id} - {entry.type} - {entry.processingState} - user: {entry.userId}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       {entries.length === 0 ? (
         <div className="text-center py-12 border rounded-lg bg-slate-50">

@@ -127,10 +127,13 @@ export async function GET(request: NextRequest) {
     // Get entries from Supabase
     const entries = await entriesApi.getEntries();
     
-    // Filter by the current user (the API should already do this, but just to be safe)
-    const userEntries = entries.filter(entry => entry.userId === effectiveUserId);
+    // TEMPORARY DEBUG CHANGE: Return all entries without filtering by user ID
+    // Original code:
+    // const userEntries = entries.filter(entry => entry.userId === effectiveUserId);
     
-    return NextResponse.json({ entries: userEntries });
+    console.log(`DEBUG: Found ${entries.length} total entries, returning all without user filtering`);
+    
+    return NextResponse.json({ entries: entries });
   } catch (error) {
     console.error("Error fetching entries:", error);
     return NextResponse.json(
