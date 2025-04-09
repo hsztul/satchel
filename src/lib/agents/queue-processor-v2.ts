@@ -150,7 +150,7 @@ export class QueueProcessorV2 {
       
       // Handle the result
       console.log(`🔄 QueueProcessor: Handling agent result for queue item ${queueItem.id}`);
-      await this.handleAgentResult(queueItem, result, entry, userId);
+      await this.handleAgentResult(queueItem, result, entry);
       
       // Process the next item in the queue
       console.log(`🔄 QueueProcessor: Moving to next queue item`);
@@ -172,8 +172,7 @@ export class QueueProcessorV2 {
   private static async handleAgentResult(
     queueItem: QueueItem, 
     result: AgentResult, 
-    entry: Entry, 
-    userId: string
+    entry: Entry
   ): Promise<void> {
     try {
       if (!result.success) {
