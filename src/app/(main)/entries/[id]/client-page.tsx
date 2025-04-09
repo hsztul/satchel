@@ -185,7 +185,6 @@ export function EntryClientPage({ id, initialEntry }: EntryClientPageProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
-  const [commentActionLoading, setCommentActionLoading] = useState(false);
 
   // Debug log for initial entry
   useEffect(() => {
@@ -316,7 +315,6 @@ export function EntryClientPage({ id, initialEntry }: EntryClientPageProps) {
   // Delete comment function
   const handleDeleteComment = async (commentId: string) => {
     try {
-      setCommentActionLoading(true);
       const { commentsApi } = await import('@/lib/supabase/client');
       await commentsApi.deleteComment(commentId);
       
@@ -335,15 +333,12 @@ export function EntryClientPage({ id, initialEntry }: EntryClientPageProps) {
         variant: "destructive"
       });
       throw error; // Re-throw to handle in the component
-    } finally {
-      setCommentActionLoading(false);
     }
   };
   
   // Update comment function
   const handleUpdateComment = async (commentId: string, text: string) => {
     try {
-      setCommentActionLoading(true);
       const { commentsApi } = await import('@/lib/supabase/client');
       
       // First, find the comment to get its userId
@@ -372,8 +367,6 @@ export function EntryClientPage({ id, initialEntry }: EntryClientPageProps) {
         variant: "destructive"
       });
       throw error; // Re-throw to handle in the component
-    } finally {
-      setCommentActionLoading(false);
     }
   };
   
@@ -410,26 +403,6 @@ export function EntryClientPage({ id, initialEntry }: EntryClientPageProps) {
 
   // Helper function to determine if content is loading
   const isLoading = entry.processingState === "processing" || entry.processingState === "started";
-
-  // Helper function to render company section with loading state
-  const renderCompanySection = (title: string, content: React.ReactNode) => (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-4 w-2/3" />
-          </div>
-        ) : (
-          content
-        )}
-      </CardContent>
-    </Card>
-  );
 
   return (
     <div>

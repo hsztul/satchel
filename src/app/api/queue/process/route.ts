@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { QueueProcessorV2 } from '@/lib/agents/queue-processor-v2';
 import { entriesApi } from '@/lib/supabase/client';
 import { queueApi } from '@/lib/supabase/queue';
 

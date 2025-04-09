@@ -17,9 +17,6 @@ export async function GET(
   //   );
   // }
   
-  // Use a test user ID if not authenticated
-  const effectiveUserId = userId || 'test-user-id';
-  
   try {
     const entryId = params.id;
     

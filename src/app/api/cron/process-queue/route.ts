@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Get pending queue items
-    let pendingItems = [];
+    const pendingItems = [];
     try {
       // Get up to 10 pending items
       for (let i = 0; i < 10; i++) {

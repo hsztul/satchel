@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { Entry, EntryType } from "@/types";
+import { EntryType } from "@/types";
 import { entriesApi } from "@/lib/supabase/client";
 import { QueueProcessorV2 } from "@/lib/agents/queue-processor-v2";
 
@@ -106,18 +106,6 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create entry", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
-  }
-}
-
-// Helper function to manually trigger processing for an entry
-// This can be useful for testing or reprocessing entries
-async function triggerProcessing(entryId: string, userId: string) {
-  try {
-    const entry = await entriesApi.getEntry(entryId);
-    return QueueProcessorV2.processEntry(entry, userId);
-  } catch (error) {
-    console.error(`Error triggering processing for entry ${entryId}:`, error);
-    throw error;
   }
 }
 

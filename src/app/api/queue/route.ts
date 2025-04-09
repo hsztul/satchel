@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { queueApi } from '@/lib/supabase/queue';
 import { entriesApi } from '@/lib/supabase/client';
-import { createClient } from '@supabase/supabase-js';
 
 // GET /api/queue - Get all queue items for the current user
 export async function GET(request: NextRequest) {
