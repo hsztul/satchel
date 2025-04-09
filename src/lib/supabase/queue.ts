@@ -6,10 +6,21 @@ export interface QueueItem {
   agentName: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   attempts: number;
-  result?: Record<string, any>;
+  result?: Record<string, unknown>;
   error?: string;
   createdAt: string;
   updatedAt: string;
+  completedAt?: string;
+}
+
+interface QueueMessage {
+  entryId: string;
+  agentName: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  attempts?: number;
+  result?: Record<string, unknown>;
+  error?: string;
+  createdAt?: string;
   completedAt?: string;
 }
 
@@ -131,11 +142,11 @@ export const queueApi = {
         .map(item => {
           try {
             // Handle both string and object message formats
-            let message: any;
+            let message: QueueMessage;
             if (typeof item.message === 'string') {
               message = JSON.parse(item.message);
             } else if (typeof item.message === 'object') {
-              message = item.message;
+              message = item.message as QueueMessage;
             } else {
               console.error('Unexpected message format:', item.message);
               return null;
@@ -205,7 +216,7 @@ export const queueApi = {
       console.log('📦 Queue API: Queue data:', JSON.stringify(queueData, null, 2));
       
       // Parse the message payload - handle both string and object formats
-      let message: any;
+      let message: QueueMessage;
       try {
         console.log('📦 Queue API: Message type is:', typeof queueData.message);
         if (queueData.message === undefined) {
@@ -216,7 +227,7 @@ export const queueApi = {
           message = JSON.parse(queueData.message);
         } else if (typeof queueData.message === 'object') {
           console.log('🔍 Queue API: Using object message directly');
-          message = queueData.message;
+          message = queueData.message as QueueMessage;
         } else {
           console.error('❌ Queue API: Unexpected message format:', typeof queueData.message, queueData.message);
           return null;
@@ -254,7 +265,7 @@ export const queueApi = {
   async updateQueueItemStatus(
     id: string, 
     status: 'pending' | 'processing' | 'completed' | 'failed',
-    result?: Record<string, any>,
+    result?: Record<string, unknown>,
     error?: string
   ): Promise<QueueItem> {
     console.log(`📝 Queue API: Updating queue item ${id} status to ${status}`);
@@ -352,11 +363,11 @@ export const queueApi = {
         .map(item => {
           try {
             // Handle both string and object message formats
-            let message: any;
+            let message: QueueMessage;
             if (typeof item.message === 'string') {
               message = JSON.parse(item.message);
             } else if (typeof item.message === 'object') {
-              message = item.message;
+              message = item.message as QueueMessage;
             } else {
               console.error('Unexpected message format:', item.message);
               return null;

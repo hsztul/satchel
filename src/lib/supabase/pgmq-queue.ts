@@ -171,7 +171,7 @@ export const pgmqApi = {
   /**
    * Complete processing of a message (archive it)
    */
-  async completeItem(messageId: string, result?: Record<string, any>): Promise<void> {
+  async completeItem(messageId: string, result?: Record<string, unknown>): Promise<void> {
     try {
       // Archive the message
       const { error } = await supabase.rpc(

@@ -63,7 +63,7 @@ export interface QueueItem {
   agentName: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   attempts: number;
-  result?: Record<string, any>;
+  result?: Record<string, unknown>;
   error?: string;
   createdAt: string;
   updatedAt: string;

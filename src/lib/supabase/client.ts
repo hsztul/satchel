@@ -1,6 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 import { Entry, EntryType, ProcessingState, Comment } from '@/types';
 
+// Database types
+interface DbEntry {
+  id: string;
+  user_id: string;
+  type: EntryType;
+  url: string | null;
+  processing_state: ProcessingState;
+  processing_progress: number;
+  created_at: string;
+  updated_at: string;
+  metadata: Record<string, unknown>;
+}
+
+interface DbComment {
+  id: string;
+  user_id: string;
+  entry_id: string;
+  text: string;
+  created_at: string;
+}
+
 // Initialize the Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -48,7 +69,7 @@ export const entriesApi = {
   },
 
   // Helper function to map database fields to Entry type
-  mapDbEntryToEntry(dbEntry: any): Entry {
+  mapDbEntryToEntry(dbEntry: DbEntry | null): Entry {
     if (!dbEntry) return null as unknown as Entry;
     
     return {
@@ -147,7 +168,7 @@ export const entriesApi = {
   // Update an entry
   async updateEntry(id: string, updates: Partial<Entry>): Promise<Entry> {
     // Convert camelCase to snake_case for database fields
-    const dbUpdates: any = {};
+    const dbUpdates: Partial<DbEntry> = {};
     if (updates.processingState !== undefined) dbUpdates.processing_state = updates.processingState;
     if (updates.processingProgress !== undefined) dbUpdates.processing_progress = updates.processingProgress;
     if (updates.userId !== undefined) dbUpdates.user_id = updates.userId;
@@ -177,10 +198,10 @@ export const entriesApi = {
     id: string, 
     state: ProcessingState, 
     progress: number = 0,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ): Promise<Entry> {
     // Format the updates based on the database schema
-    const updates: any = {
+    const updates: Partial<DbEntry> = {
       processing_state: state,
       processing_progress: progress,
     };
@@ -230,7 +251,7 @@ export const entriesApi = {
 // Comments API
 export const commentsApi = {
   // Helper function to map database fields to Comment type
-  mapDbCommentToComment(dbComment: any): Comment {
+  mapDbCommentToComment(dbComment: DbComment | null): Comment {
     if (!dbComment) return null as unknown as Comment;
     
     return {
