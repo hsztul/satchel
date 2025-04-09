@@ -4,7 +4,7 @@ import { queueApi } from '@/lib/supabase/queue';
 import { entriesApi } from '@/lib/supabase/client';
 
 // GET /api/queue - Get all queue items for the current user
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Verify authentication
     const user = await currentUser();

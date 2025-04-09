@@ -7,7 +7,7 @@ import { UserButton, useUser } from "@clerk/nextjs";
 
 export function Header() {
   const pathname = usePathname();
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn } = useUser();
   
   return (
     <header className="border-b">

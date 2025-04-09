@@ -9,7 +9,7 @@ import { entriesApi } from "@/lib/supabase/client";
  * This route is used to process the next item in the queue.
  * It can be called by a scheduled job or manually triggered.
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   console.log('🔄 Worker GET: Starting to process next queue item');
   try {
     // Get the next pending queue item

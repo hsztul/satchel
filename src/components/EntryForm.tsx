@@ -43,16 +43,7 @@ export function EntryForm({
   const router = useRouter();
   const searchParams = useSearchParams();
   const typeFromUrl = searchParams.get('type') as EntryType | null;
-  const [selectedType, setSelectedType] = useState<EntryType>(initialValues?.type || typeFromUrl || "article");
-  const [showTypeSelector, setShowTypeSelector] = useState<boolean>(!typeFromUrl && !initialValues?.type);
-  
-  // Update the form when URL parameters change
-  useEffect(() => {
-    if (typeFromUrl && typeFromUrl !== selectedType) {
-      setSelectedType(typeFromUrl);
-      form.setValue("type", typeFromUrl);
-    }
-  }, [typeFromUrl]);
+  const [showTypeSelector] = useState<boolean>(!typeFromUrl && !initialValues?.type);
   
   // Initialize the form
   const form = useForm<FormValues>({
@@ -64,6 +55,14 @@ export function EntryForm({
       title: initialValues?.title || "",
     },
   });
+
+  useEffect(() => {
+    if (typeFromUrl) {
+      form.setValue('type', typeFromUrl);
+    } else if (initialValues?.type) {
+      form.setValue('type', initialValues.type);
+    }
+  }, [form.setValue, typeFromUrl, initialValues?.type]);
 
   // Handle form submission
   const onSubmit = async (values: FormValues) => {
@@ -103,7 +102,6 @@ export function EntryForm({
 
   // Handle type selection
   const handleTypeSelect = (type: EntryType) => {
-    setSelectedType(type);
     form.setValue("type", type);
     
     // Update the URL to reflect the selected type
@@ -118,14 +116,14 @@ export function EntryForm({
     <Card>
       <CardHeader>
         <CardTitle>
-          {isEditing ? 'Edit Entry' : `New ${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}`}
+          {isEditing ? 'Edit Entry' : `New ${form.watch('type').charAt(0).toUpperCase() + form.watch('type').slice(1)}`}
         </CardTitle>
         <CardDescription>
           {isEditing 
             ? 'Update this entry' 
-            : selectedType === 'article' 
+            : form.watch('type') === 'article' 
               ? 'Add an article URL to analyze and summarize' 
-              : selectedType === 'company' 
+              : form.watch('type') === 'company' 
                 ? 'Add a company URL to research and profile' 
                 : 'Create a personal note or thought'}
         </CardDescription>
@@ -140,9 +138,9 @@ export function EntryForm({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <Button
                   type="button"
-                  variant={selectedType === "article" ? "default" : "outline"}
+                  variant={form.watch('type') === "article" ? "default" : "outline"}
                   className={`justify-start h-auto py-3 px-4 border-2 ${
-                    selectedType === "article" 
+                    form.watch('type') === "article" 
                       ? "border-slate-900 bg-slate-900 text-white" 
                       : "border-slate-200 hover:border-slate-900 hover:bg-slate-50"
                   }`}
@@ -150,16 +148,16 @@ export function EntryForm({
                 >
                   <div className="flex flex-col items-start">
                     <span className="font-medium">Article</span>
-                    <span className={`text-xs ${selectedType === "article" ? "text-slate-300" : "text-slate-500"}`}>
+                    <span className={`text-xs ${form.watch('type') === "article" ? "text-slate-300" : "text-slate-500"}`}>
                       Add an article URL
                     </span>
                   </div>
                 </Button>
                 <Button
                   type="button"
-                  variant={selectedType === "company" ? "default" : "outline"}
+                  variant={form.watch('type') === "company" ? "default" : "outline"}
                   className={`justify-start h-auto py-3 px-4 border-2 ${
-                    selectedType === "company" 
+                    form.watch('type') === "company" 
                       ? "border-slate-900 bg-slate-900 text-white" 
                       : "border-slate-200 hover:border-slate-900 hover:bg-slate-50"
                   }`}
@@ -167,16 +165,16 @@ export function EntryForm({
                 >
                   <div className="flex flex-col items-start">
                     <span className="font-medium">Company</span>
-                    <span className={`text-xs ${selectedType === "company" ? "text-slate-300" : "text-slate-500"}`}>
+                    <span className={`text-xs ${form.watch('type') === "company" ? "text-slate-300" : "text-slate-500"}`}>
                       Add a company URL
                     </span>
                   </div>
                 </Button>
                 <Button
                   type="button"
-                  variant={selectedType === "note" ? "default" : "outline"}
+                  variant={form.watch('type') === "note" ? "default" : "outline"}
                   className={`justify-start h-auto py-3 px-4 border-2 ${
-                    selectedType === "note" 
+                    form.watch('type') === "note" 
                       ? "border-slate-900 bg-slate-900 text-white" 
                       : "border-slate-200 hover:border-slate-900 hover:bg-slate-50"
                   }`}
@@ -184,7 +182,7 @@ export function EntryForm({
                 >
                   <div className="flex flex-col items-start">
                     <span className="font-medium">Note</span>
-                    <span className={`text-xs ${selectedType === "note" ? "text-slate-300" : "text-slate-500"}`}>
+                    <span className={`text-xs ${form.watch('type') === "note" ? "text-slate-300" : "text-slate-500"}`}>
                       Add a personal note
                     </span>
                   </div>
@@ -196,7 +194,7 @@ export function EntryForm({
             {/* Conditional form fields based on selected type */}
             {(
               <div className="space-y-4">
-                {selectedType === "article" && (
+                {form.watch('type') === "article" && (
                   <FormField
                     control={form.control}
                     name="url"
@@ -218,7 +216,7 @@ export function EntryForm({
                   />
                 )}
                 
-                {selectedType === "company" && (
+                {form.watch('type') === "company" && (
                   <FormField
                     control={form.control}
                     name="url"
@@ -240,7 +238,7 @@ export function EntryForm({
                   />
                 )}
                 
-                {selectedType === "note" && (
+                {form.watch('type') === "note" && (
                   <>
                     <FormField
                       control={form.control}
@@ -287,7 +285,7 @@ export function EntryForm({
                 >
                   {isEditing 
                     ? 'Update Entry' 
-                    : `Create ${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}`
+                    : `Create ${form.watch('type').charAt(0).toUpperCase() + form.watch('type').slice(1)}`
                   }
                 </Button>
               </div>

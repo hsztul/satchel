@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { ProcessingStatus } from "./ProcessingStatus";
 import { Entry } from "@/types";
-import { createClient } from "@supabase/supabase-js";
 import { QueueItem } from "@/lib/supabase/queue";
 
 interface EntryProcessingStatusProps {
@@ -169,47 +168,9 @@ export function EntryProcessingStatus({ initialEntry }: EntryProcessingStatusPro
     }
   }, [entry.id, entry.processingState]);
 
-  const handleManualRefresh = async () => {
-    try {
-      // Show a visual indicator that refresh is happening
-      setLastRefresh(new Date());
-      
-      // Fetch updated entry
-      const { entriesApi } = await import('@/lib/supabase/client');
-      const updatedEntry = await entriesApi.getEntry(entry.id);
-      
-      if (updatedEntry) {
-        setEntry(updatedEntry);
-        
-        // Update isUpdating state based on processing state
-        setIsUpdating(updatedEntry.processingState !== "completed" && updatedEntry.processingState !== "failed");
-        
-        // Also refresh queue items
-        const { queueApi } = await import('@/lib/supabase/queue');
-        const items = await queueApi.getQueueItemsForEntry(entry.id);
-        if (items.length > 0) {
-          setQueueItems(items);
-          
-          // Update current agent
-          const processingItem = items.find(item => item.status === 'processing');
-          if (processingItem) {
-            setCurrentAgent(processingItem.agentName);
-          } else {
-            // If no processing item, find the most recent completed item
-            const completedItems = items.filter(item => item.status === 'completed');
-            if (completedItems.length > 0) {
-              completedItems.sort((a, b) => {
-                return new Date(b.completedAt || '').getTime() - new Date(a.completedAt || '').getTime();
-              });
-              setCurrentAgent(completedItems[0].agentName);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error refreshing entry status:", error);
-    }
-  };
+  useEffect(() => {
+    // Logic that depends on entry.metadata and entry.processingProgress
+  }, [entry.metadata, entry.processingProgress]);
 
   return (
     <div className="space-y-2">

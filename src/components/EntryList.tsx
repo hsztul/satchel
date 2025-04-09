@@ -20,7 +20,7 @@ export function EntryList({ initialEntries }: EntryListProps) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Subscribe to changes on the entries table
-    const subscription = supabase
+    supabase
       .channel('public:entries')
       .on('postgres_changes', { 
         event: '*', // Listen for all events (insert, update, delete)
