@@ -120,8 +120,8 @@ export async function GET(request: NextRequest) {
   //   );
   // }
   
-  // Use a test user ID if not authenticated
-  const effectiveUserId = userId || 'test-user-id';
+  // TEMPORARY DEBUG: Not using effectiveUserId while debugging
+  // const effectiveUserId = userId || 'test-user-id';
   
   try {
     // Get entries from Supabase
@@ -132,6 +132,7 @@ export async function GET(request: NextRequest) {
     // const userEntries = entries.filter(entry => entry.userId === effectiveUserId);
     
     console.log(`DEBUG: Found ${entries.length} total entries, returning all without user filtering`);
+    console.log(`Current user ID from auth: ${userId || 'none'}`);
     
     return NextResponse.json({ entries: entries });
   } catch (error) {
