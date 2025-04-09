@@ -22,9 +22,8 @@ async function getEntry(id: string): Promise<Entry | null> {
 
 // Server component wrapper
 export default async function EntryPage(props: EntryPageProps) {
-  // Properly await params before destructuring
-  const params = await Promise.resolve(props.params);
-  const { id } = params;
+  // Directly destructure params
+  const { id } = props.params;
   
   const initialEntry = await getEntry(id);
   
