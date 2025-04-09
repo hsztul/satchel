@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
 import { RefreshCw, Play, AlertCircle } from "lucide-react";
 import { QueueItem } from "@/lib/supabase/queue";
@@ -63,10 +62,6 @@ export function QueueDashboard() {
 
   // Set up real-time subscription for queue items
   useEffect(() => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    
     // Fetch queue items initially
     fetchQueueItems();
     

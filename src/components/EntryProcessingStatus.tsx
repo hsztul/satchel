@@ -166,7 +166,7 @@ export function EntryProcessingStatus({ initialEntry }: EntryProcessingStatusPro
       
       fetchQueueItemsOnce();
     }
-  }, [entry.id, entry.processingState]);
+  }, [entry.id, entry.processingState, entry.processingProgress, entry.metadata]);
 
   useEffect(() => {
     // Logic that depends on entry.metadata and entry.processingProgress

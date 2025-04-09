@@ -38,7 +38,7 @@ const initializeQueue = async () => {
 
     // If queue doesn't exist, create it
     if (!queueExists) {
-      const { data, error } = await supabase.rpc(
+      const { error } = await supabase.rpc(
         'pgmq_public.create',
         { queue_name: QUEUE_NAME }
       );
@@ -171,7 +171,7 @@ export const pgmqApi = {
   /**
    * Complete processing of a message (archive it)
    */
-  async completeItem(messageId: string, result?: Record<string, unknown>): Promise<void> {
+  async completeItem(messageId: string): Promise<void> {
     try {
       // Archive the message
       const { error } = await supabase.rpc(

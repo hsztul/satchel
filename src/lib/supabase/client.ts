@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Entry, EntryType, ProcessingState, Comment } from '@/types';
+import { Entry, EntryType, ProcessingState, Comment, EntryMetadata } from '@/types';
 
 // Database types
 interface DbEntry {
@@ -11,7 +11,7 @@ interface DbEntry {
   processing_progress: number;
   created_at: string;
   updated_at: string;
-  metadata: Record<string, unknown>;
+  metadata: EntryMetadata;
 }
 
 interface DbComment {
@@ -76,12 +76,12 @@ export const entriesApi = {
       id: dbEntry.id,
       userId: dbEntry.user_id,
       type: dbEntry.type,
-      url: dbEntry.url,
+      url: dbEntry.url ?? undefined,
       processingState: dbEntry.processing_state,
       processingProgress: dbEntry.processing_progress,
       createdAt: dbEntry.created_at,
       updatedAt: dbEntry.updated_at,
-      metadata: dbEntry.metadata || {}
+      metadata: dbEntry.metadata as EntryMetadata
     };
   },
 
@@ -108,7 +108,7 @@ export const entriesApi = {
     userId: string,
     type: EntryType,
     url?: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
     console.log('Creating entry in Supabase with:', { userId, type, url });
     
