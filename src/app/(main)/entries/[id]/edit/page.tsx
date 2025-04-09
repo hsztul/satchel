@@ -48,7 +48,11 @@ export default function EditEntryPage() {
     }
   }, [params.id]);
 
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = async (formData: {
+    type: string;
+    url?: string;
+    text?: string;
+  }) => {
     // In a real app, this would update the entry in Supabase
     console.log("Updating entry with data:", formData);
     
@@ -74,7 +78,7 @@ export default function EditEntryPage() {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold mb-2">Entry not found</h2>
-        <p className="text-slate-500 mb-6">The entry you're looking for doesn't exist or you don't have access to it.</p>
+        <p className="text-slate-500 mb-6">The entry you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.</p>
         <Link href="/entries">
           <Button className="bg-slate-900 hover:bg-slate-800">
             Back to Entries

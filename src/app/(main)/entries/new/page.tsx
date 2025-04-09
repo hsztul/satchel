@@ -1,6 +1,5 @@
 import { EntryForm } from "@/components/EntryForm";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { EntryType } from "@/types";
 
 export default async function NewEntryPage({ 

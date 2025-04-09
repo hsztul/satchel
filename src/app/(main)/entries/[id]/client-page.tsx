@@ -10,7 +10,6 @@ import { EntryProcessingStatus } from "@/components/EntryProcessingStatus";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { UserButton } from "@clerk/nextjs";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface EntryClientPageProps {

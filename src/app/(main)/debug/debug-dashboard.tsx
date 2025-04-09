@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { queueApi } from "@/lib/supabase/queue";
 import { Entry, QueueItem } from "@/types";
 import { AlertCircle, CheckCircle, Loader2, Play, RefreshCw } from "lucide-react";
@@ -88,7 +88,7 @@ export default function DebugDashboard() {
   // Load data on component mount
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   // Get status color
   const getStatusColor = (status: string) => {
