@@ -159,10 +159,10 @@ Reference: PRD Section 5.4.2.
 ## Phase 9: Chat Functionality (RAG)
 
 ### Set up Vercel AI SDK Chat API Route
-- [ ] **Action:** Create API route (`pages/api/chat.js`) using Vercel AI SDK handler (`experimental_generateText` or similar).
+- [x] **Action:** Create API route (`pages/api/chat.js`) using Vercel AI SDK handler (`experimental_generateText` or similar).
 
 ### Implement RAG Logic in Chat API Route
-- [ ] **Action:** Inside the handler:
+- [x] **Action:** Inside the handler:
   - Embed latest user query.
   - Perform semantic search on `entry_chunks` table via Supabase/pgvector.
   - Prepare context from retrieved chunks.
@@ -177,30 +177,50 @@ Reference: PRD Section 5.4.2.
 - [x] **Action:** Add a header link that toggles between "Dashboard" and "Chat" depending on the current page, using Next.js `<Link>`.
 
 ## Phase 10: Polish and Industry Features
-- [ ] **Action:** Add loading indicator for processing entries
+- [x] **Action:** Add loading indicator for processing entries
   - Add inline loading spinner next to entry title
   - Update EntryCard component to show/hide based on status
   - Add real-time status updates using Supabase subscription
   - Ensure indicator clears on completion/failure
 
-- [ ] **Action:** Add industries extraction to summarization
+- [x] **Action:** Add industries extraction to summarization
   - Add industries field to entries table (array of strings)
   - Update article and company summary prompts to extract industries
   - Modify summarization code to store extracted industries
 
-- [ ] **Action:** Add industry filtering to entry feed
+- [x] **Action:** Add industry filtering to entry feed
   - Add industry filter dropdown component
   - Update entry feed query to filter by industry
   - Add industry tags to entry cards
 
-- [ ] **Action:** Enhance vector store with industry data
+- [x] **Action:** Enhance vector store with industry data
   - Update chunking to include industry context
   - Modify embedding generation to incorporate industry information
   - Update relevant queries to leverage industry context
 
-- [ ] **Action:** Add entry reprocessing UI
+- [x] **Action:** Add entry reprocessing UI
   - Add dropdown menu to entry view page
   - Move delete button to dropdown
   - Add reprocess button with circular arrow icon
   - Implement reprocessing functionality using existing ingest pipeline
 - **Reference:** PRD Section 5.7.2, Vercel AI SDK documentation.
+
+## Phase 11: Note Entry Type Support
+### Database Schema Updates
+- [ ] **Action:** Add reference_entry_ids array column to entries table
+  - Modify entries table to support array of entry IDs for note references
+  - Enable linking notes to other entries ("commenting" functionality)
+
+### Note Creation from Dashboard
+- [ ] **Action:** Update entry input form
+  - Add 'Note' option to entry type dropdown
+  - Convert URL input to text area when Note type is selected
+  - Implement auto-title generation from note text
+  - Store note content in metadata field
+
+### Note Creation on Entry Detail View
+- [ ] **Action:** Add note creation UI to entry detail page
+  - Add text area at bottom of entry detail view
+  - Automatically include current entry ID in reference_entry_ids
+  - Display linked notes below the note creation area
+  - Update entry feed to properly display note entries

@@ -26,6 +26,7 @@ const ArticleSummarySchema = z.object({
   summary: z.string(),
   keyTakeaways: z.array(z.string()),
   primaryConcepts: z.array(z.string()),
+  industries: z.array(z.string()),
 });
 
 export async function summarizeArticleWithLLM(prompt: string) {

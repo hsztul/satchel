@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const entryType = searchParams.get('entryType');
   const status = searchParams.get('status');
+  const industry = searchParams.get('industry');
   const sortBy = searchParams.get('sortBy') || 'created_at';
   const sortOrder = searchParams.get('sortOrder') || 'desc';
   const searchTerm = searchParams.get('searchTerm') || '';
@@ -20,6 +21,7 @@ export async function GET(req: NextRequest) {
 
   if (entryType) query = query.eq('entry_type', entryType);
   if (status) query = query.eq('status', status);
+  if (industry) query = query.contains('industries', [industry]);
   if (searchTerm) {
     query = query.ilike('title', `%${searchTerm}%`);
   }

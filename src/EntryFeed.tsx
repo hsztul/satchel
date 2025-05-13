@@ -20,6 +20,7 @@ interface Entry {
   status: string;
   created_at: string;
   summary?: string;
+  industries?: string[];
 }
 
 export default function EntryFeed() {
@@ -31,6 +32,8 @@ export default function EntryFeed() {
   const [sortBy, setSortBy] = useState<string>("created_at");
   const [sortOrder, setSortOrder] = useState<string>("desc");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedIndustry, setSelectedIndustry] = useState<string | undefined>(undefined);
+  const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [pollingActive, setPollingActive] = useState(true);
   const pollingToastId = React.useRef<string | number | null>(null);
 
@@ -45,6 +48,7 @@ export default function EntryFeed() {
     const params = new URLSearchParams({
       ...(entryType ? { entryType } : {}),
       ...(status ? { status } : {}),
+      ...(selectedIndustry ? { industry: selectedIndustry } : {}),
       sortBy,
       sortOrder,
       ...(searchTerm ? { searchTerm } : {}),
@@ -64,12 +68,30 @@ export default function EntryFeed() {
         if (opts?.userInitiated) setLoading(false);
         fetchingRef.current = false;
       });
-  }, [entryType, status, sortBy, sortOrder, searchTerm]);
+  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustry]);
 
   // Fetch on mount and whenever filters change
+  // Fetch available industries
+  const fetchIndustries = React.useCallback(async () => {
+    try {
+      const res = await fetch('/api/industries');
+      const data = await res.json();
+      if (data.industries) {
+        setAvailableIndustries(data.industries);
+      }
+    } catch (err) {
+      console.error('Failed to fetch industries:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchEntries({ userInitiated: true });
-  }, [entryType, status, sortBy, sortOrder, searchTerm, fetchEntries]);
+  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustry, fetchEntries]);
+
+  // Fetch industries on mount
+  useEffect(() => {
+    fetchIndustries();
+  }, [fetchIndustries]);
 
   // Polling effect
   // Polling interval ref
@@ -90,7 +112,7 @@ export default function EntryFeed() {
         pollingIntervalRef.current = null;
       }
     };
-  }, [pollingActive, entryType, status, sortBy, sortOrder, searchTerm, fetchEntries]);
+  }, [pollingActive, entryType, status, sortBy, sortOrder, searchTerm, selectedIndustry, fetchEntries]);
 
   // Progress Toast & Polling Control
   React.useEffect(() => {
@@ -178,6 +200,19 @@ export default function EntryFeed() {
                 <SelectItem value="failed">Failed</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={selectedIndustry || "all"} onValueChange={(value) => setSelectedIndustry(value === "all" ? undefined : value)}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Filter by Industry" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Industries</SelectItem>
+                {availableIndustries.map((industry) => (
+                  <SelectItem key={industry} value={industry}>
+                    {industry}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Sort By" />
@@ -211,46 +246,63 @@ export default function EntryFeed() {
       {/* Entry List */}
       {!loading && !error && entries.map((entry) => (
         <Link key={entry.id} href={`/entry/${entry.id}`} className="block mb-6">
-          <Card className="p-4 flex flex-col gap-1 hover:shadow-md transition cursor-pointer">
-            <div className="flex items-center gap-2">
-                <span className="font-semibold text-lg text-slate-800">{entry.title || "Untitled"}</span>
+          <Card className="p-4 hover:shadow-md transition cursor-pointer">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-lg text-slate-800 truncate">{entry.title || "Untitled"}</span>
                 {["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"].includes(entry.status) && (
-                  <Spinner size={18} className="ml-2" />
+                  <Spinner size={18} />
                 )}
-                <Badge variant="outline" className="ml-2 text-xs capitalize">{entry.entry_type}</Badge>
-                <Badge variant="secondary" className="ml-2 text-xs capitalize">{entry.status}</Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="text-xs capitalize">{entry.entry_type}</Badge>
+                <Badge variant="secondary" className="text-xs capitalize">{entry.status}</Badge>
+                {entry.industries?.slice(0, 3).map((industry) => (
+                  <Badge key={industry} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    {industry}
+                  </Badge>
+                ))}
+                {entry.industries && entry.industries.length > 3 && (
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    +{entry.industries.length - 3} more
+                  </Badge>
+                )}
+              </div>
+              {entry.summary && (
+                <p className="text-sm text-slate-600 mt-2">
+                  {entry.summary}
+                </p>
+              )}
+              <div className="flex items-center justify-between mt-1">
+                <div className="text-xs text-slate-500">{new Date(entry.created_at).toLocaleString()}</div>
                 <button
                   type="button"
                   aria-label="Delete entry"
-                  className="ml-auto p-1 rounded hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
-                  title="Delete entry"
+                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
                   onClick={async (e) => {
                     e.preventDefault();
-                    if (!window.confirm("Delete this entry? This cannot be undone.")) return;
+                    e.stopPropagation();
+                    if (!window.confirm('Are you sure you want to delete this entry?')) {
+                      return;
+                    }
                     try {
-                      const res = await fetch(`/api/entries/${entry.id}`, { method: "DELETE" });
-                      if (res.status === 204) {
-                        toast.success("Entry deleted");
-                        setEntries((prev) => prev.filter((en) => en.id !== entry.id));
-                      } else {
-                        const data = await res.json();
-                        toast.error(data.error || "Failed to delete entry");
+                      const res = await fetch(`/api/entries/${entry.id}`, {
+                        method: 'DELETE',
+                      });
+                      if (!res.ok) {
+                        throw new Error('Failed to delete entry');
                       }
-                    } catch {
-                      toast.error("Failed to delete entry");
+                      await fetchEntries({ userInitiated: true });
+                    } catch (err) {
+                      console.error('Error deleting entry:', err);
                     }
                   }}
                 >
                   <Trash size={18} strokeWidth={2} />
                 </button>
               </div>
-              {entry.summary && (
-                <div className="prose prose-xs max-w-none bg-slate-50 rounded p-2 border text-slate-800 my-1">
-                  {entry.summary}
-                </div>
-              )}
-              <div className="text-xs text-slate-500 mt-1">{new Date(entry.created_at).toLocaleString()}</div>
-            </Card>
+            </div>
+          </Card>
         </Link>
       ))}
     </div>

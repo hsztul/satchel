@@ -18,10 +18,19 @@ export async function processCompanyEntry({ entryId, url }: { entryId: string, u
     const { data: existingEntry } = await supabase.from('entries').select('llm_analysis').eq('id', entryId).single();
     const prevLlmAnalysis = existingEntry?.llm_analysis || {};
     const newLlmAnalysis = { ...prevLlmAnalysis, site_summary: { ...exaResult } };
+    
+    // Extract industries from summary
+    const { summarizeCompany } = await import('@/lib/aiAgent');
+    const summaryObj = await summarizeCompany({
+      title: companyTitle,
+      cleaned_content: exaResult.cleaned_content,
+    });
+    
     await supabase.from('entries').update({
       title: companyTitle,
       llm_analysis: newLlmAnalysis,
       summary: exaResult.summary,
+      industries: summaryObj.industries || [],
       status: 'processing_summarized',
     }).eq('id', entryId);
     // --- Perplexity research step ---

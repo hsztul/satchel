@@ -42,8 +42,16 @@ function cleanMarkdown(md: string): string {
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trash } from "lucide-react";
+import { MoreVertical, RefreshCcw, Trash } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { use as usePromise } from "react";
 
@@ -81,15 +89,39 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     if (!entryId) return;
     setLoading(true);
-    fetch(`/api/entries/${entryId}`)
-      .then(res => res.json())
-      .then(data => {
+
+    // Initial fetch
+    const fetchEntry = async () => {
+      try {
+        const res = await fetch(`/api/entries/${entryId}`);
+        const data = await res.json();
         if (data.error) setError(data.error);
         else setEntry(data);
-      })
-      .catch(() => setError("Failed to load entry"))
-      .finally(() => setLoading(false));
-  }, [entryId]);
+      } catch {
+        setError("Failed to load entry");
+      } finally {
+        setLoading(false);
+      }
+    };
+    void fetchEntry();
+
+    // Set up polling for processing status
+    const pollInterval = setInterval(async () => {
+      if (!entry) return;
+      if (!["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"].includes(entry.status)) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/entries/${entryId}`);
+        const data = await res.json();
+        if (!data.error) setEntry(data);
+      } catch (err) {
+        console.error('Error polling entry:', err);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [entryId, entry?.status]);
 
   useEffect(() => {
     if (!entry?.llm_analysis?.perplexity_research?.full_perplexity_responses) {
@@ -117,48 +149,92 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
       )}
       {!loading && !error && entry && (
         <Card className="p-6">
-          <div className="mb-2">
-            <h2 className="text-2xl font-bold text-slate-800 w-full break-words mb-1">{entry.title || "Untitled"}</h2>
-            {entry.source_url && (
-              <div className="mb-2">
-                <a
-                  href={entry.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1"
-                  title={entry.source_url}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline-block mr-1 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656m-3.656-3.656a4 4 0 015.656 0m-7.778 7.778a4 4 0 010-5.656m3.656 3.656a4 4 0 01-5.656 0m7.778-7.778a4 4 0 010 5.656m-3.656-3.656a4 4 0 015.656 0" /></svg>
-                  {entry.source_url}
-                </a>
+          <div className="mb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800 w-full break-words mb-2">{entry.title || "Untitled"}</h2>
+                {entry.source_url && (
+                  <a
+                    href={entry.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-sm"
+                  >
+                    {entry.source_url}
+                  </a>
+                )}
               </div>
-            )}
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="capitalize">{entry.entry_type}</Badge>
-              <Badge variant="secondary" className="capitalize">{entry.status}</Badge>
-              <button
-                type="button"
-                aria-label="Delete entry"
-                className="ml-auto p-1 rounded hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
-                title="Delete entry"
-                onClick={async () => {
-                  if (!window.confirm("Delete this entry? This cannot be undone.")) return;
-                  try {
-                    const res = await fetch(`/api/entries/${entryId}`, { method: "DELETE" });
-                    if (res.status === 204) {
-                      toast.success("Entry deleted");
-                      window.location.href = "/";
-                    } else {
-                      const data = await res.json();
-                      toast.error(data.error || "Failed to delete entry");
-                    }
-                  } catch {
-                    toast.error("Failed to delete entry");
-                  }
-                }}
-              >
-                <Trash size={20} strokeWidth={2} />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    onClick={async () => {
+                      if (!window.confirm('Delete this entry? This cannot be undone.')) return;
+                      try {
+                        const res = await fetch(`/api/entries/${entry.id}`, { method: 'DELETE' });
+                        if (res.ok) {
+                          toast.success('Entry deleted');
+                          window.location.href = '/';
+                        } else {
+                          const data = await res.json();
+                          toast.error(data.error || 'Failed to delete entry');
+                        }
+                      } catch {
+                        toast.error('Failed to delete entry');
+                      }
+                    }}
+                  >
+                    <Trash className="mr-2 h-4 w-4" />
+                    <span>Delete</span>
+                  </DropdownMenuItem>
+                  {(entry.entry_type === 'article' || entry.entry_type === 'company') && (
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`/api/entries/${entry.id}/reprocess`, {
+                            method: 'POST',
+                          });
+                          if (!res.ok) {
+                            throw new Error('Failed to reprocess entry');
+                          }
+                          toast.success('Entry reprocessing started');
+                          // Refresh the page after a short delay
+                          setTimeout(() => window.location.reload(), 1000);
+                        } catch (err) {
+                          console.error('Error reprocessing entry:', err);
+                          toast.error('Failed to reprocess entry');
+                        }
+                      }}
+                    >
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      <span>Reprocess</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Badge variant="outline" className="text-xs capitalize">{entry.entry_type}</Badge>
+              <Badge variant="secondary" className="text-xs capitalize flex items-center gap-1.5">
+                {entry.status}
+                {["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"].includes(entry.status) && (
+                  <Spinner size={12} />
+                )}
+              </Badge>
+              {Array.isArray(entry.industries) && entry.industries.map((industry: string) => (
+                <Badge key={industry} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                  {industry}
+                </Badge>
+              ))}
             </div>
           </div>
           <div className="text-xs text-slate-500 mb-4">

@@ -31,10 +31,11 @@ export async function processArticleEntry({ entryId, url }: { entryId: string, u
         title: result.title,
         cleaned_content: result.cleaned_content,
       });
-      const { summary, keyTakeaways, primaryConcepts } = summaryObj;
+      const { summary, keyTakeaways, primaryConcepts, industries } = summaryObj;
       const { error: summaryError } = await supabase.from('entries').update({
         summary,
         llm_analysis: { keyTakeaways, primaryConcepts },
+        industries,
         status: 'processing_summarized',
       }).eq('id', entryId);
       if (summaryError) {

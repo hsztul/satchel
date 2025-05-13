@@ -26,14 +26,27 @@ export async function embedChunksAndStore({
   entryId: string;
   text: string;
 }): Promise<{ success: boolean; error?: string }> {
+  // Fetch entry's industries for context
+  const { data: entry } = await supabase
+    .from('entries')
+    .select('industries')
+    .eq('id', entryId)
+    .single();
+  
+  const industries = entry?.industries || [];
   const chunks = chunkText(text);
   let chunkOrder = 0;
   for (const chunk of chunks) {
     try {
+      // Add industry context to chunk if available
+      const contextualizedChunk = industries.length > 0
+        ? `Context: This content is related to the following industries: ${industries.join(', ')}\n\nContent: ${chunk}`
+        : chunk;
+
       // Call OpenAI embedding API
       const embeddingResp = await openai.embeddings.create({
         model: "text-embedding-ada-002",
-        input: chunk,
+        input: contextualizedChunk,
       });
       const embedding = embeddingResp.data[0].embedding;
       // Store in entry_chunks table
