@@ -33,6 +33,7 @@ export default function EntryFeed() {
   const [sortOrder, setSortOrder] = useState<string>("desc");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+  const [allIndustries, setAllIndustries] = useState<string[]>([]);
 
   const [pollingActive, setPollingActive] = useState(true);
   const pollingToastId = React.useRef<string | number | null>(null);
@@ -74,6 +75,20 @@ export default function EntryFeed() {
   useEffect(() => {
     fetchEntries({ userInitiated: true });
   }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustries, fetchEntries]);
+
+  // Fetch all industries on mount
+  useEffect(() => {
+    fetch('/api/industries')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data.industries)) {
+          setAllIndustries(data.industries);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch industries:', err);
+      });
+  }, []);
 
   // Polling effect
   // Polling interval ref
@@ -215,21 +230,19 @@ export default function EntryFeed() {
                     All industries
                   </div>
                 </SelectItem>
-                {Array.from(new Set(entries.flatMap((entry) => entry.industries || [])))
-                  .sort()
-                  .map((industry) => (
-                    <SelectItem key={industry} value={industry}>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedIndustries.includes(industry)}
-                          className="h-4 w-4 rounded border-gray-300"
-                          readOnly
-                        />
-                        {industry}
-                      </div>
-                    </SelectItem>
-                  ))}
+                {allIndustries.map((industry) => (
+                  <SelectItem key={industry} value={industry}>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIndustries.includes(industry)}
+                        className="h-4 w-4 rounded border-gray-300"
+                        readOnly
+                      />
+                      {industry}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
