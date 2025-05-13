@@ -74,7 +74,13 @@ export async function POST(req: NextRequest) {
       status: 'pending',
       message: isReprocessing ? 'Reprocessing started.' : 'Entry ingestion started.'
     }, { status: 202 });
-  } catch (err: any) {
-    return NextResponse.json({ error: 'Unexpected error', details: err?.message }, { status: 500 });
+  } catch (err: unknown) {
+    let details = 'Unknown error';
+    if (err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+      details = (err as { message: string }).message;
+    } else {
+      details = String(err);
+    }
+    return NextResponse.json({ error: 'Unexpected error', details }, { status: 500 });
   }
 }

@@ -2,6 +2,9 @@
 import { useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 
+type ReasoningDetail = { type: 'text'; text: string } | { type: string; [key: string]: unknown };
+type MessagePart = { type: 'text'; text: string } | { type: 'reasoning'; details: ReasoningDetail[] };
+
 export default function ChatUI() {
   const {
     messages,
@@ -38,9 +41,9 @@ export default function ChatUI() {
               }`}
             >
               {Array.isArray(m.parts)
-                ? m.parts.map((part: any, idx: number) => {
+                ? (m.parts as MessagePart[]).map((part, idx) => {
                     if (part.type === 'text') return <span key={idx}>{part.text}</span>;
-                    if (part.type === 'reasoning') return <pre key={idx} className="bg-yellow-50 text-yellow-900 rounded p-2 my-1">{part.details?.map((d: any) => d.type === 'text' ? d.text : '<redacted>').join(' ')}</pre>;
+                    if (part.type === 'reasoning') return <pre key={idx} className="bg-yellow-50 text-yellow-900 rounded p-2 my-1">{part.details?.map((d: ReasoningDetail) => d.type === 'text' ? d.text : '<redacted>').join(' ')}</pre>;
                     return null;
                   })
                 : m.content}

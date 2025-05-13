@@ -28,7 +28,7 @@ export default function EntryInputForm({ onSuccess }: { onSuccess?: () => void }
         setUrl("");
         onSuccess?.();
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to submit entry");
     } finally {
       setLoading(false);

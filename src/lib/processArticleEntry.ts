@@ -14,7 +14,7 @@ export async function processArticleEntry({ entryId, url }: { entryId: string, u
     await supabase.from('entries').update({ status: 'failed' }).eq('id', entryId);
     return;
   }
-  const { error: updateError, data: updateData } = await supabase.from('entries').update({
+  const { error: updateError } = await supabase.from('entries').update({
     title: result.title,
     cleaned_content: result.cleaned_content,
     metadata: result.metadata,

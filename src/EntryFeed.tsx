@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+
 import { Trash } from "lucide-react";
 
 interface Entry {
@@ -37,7 +37,7 @@ export default function EntryFeed() {
   const fetchingRef = React.useRef(false);
 
   // Fetch entries (single fetch)
-  const fetchEntries = (opts?: { userInitiated?: boolean }) => {
+  const fetchEntries = React.useCallback((opts?: { userInitiated?: boolean }) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     if (opts?.userInitiated) setLoading(true);
@@ -63,13 +63,12 @@ export default function EntryFeed() {
         if (opts?.userInitiated) setLoading(false);
         fetchingRef.current = false;
       });
-  };
+  }, [entryType, status, sortBy, sortOrder, searchTerm]);
 
   // Fetch on mount and whenever filters change
   useEffect(() => {
     fetchEntries({ userInitiated: true });
-    // eslint-disable-next-line
-  }, [entryType, status, sortBy, sortOrder, searchTerm]);
+  }, [entryType, status, sortBy, sortOrder, searchTerm, fetchEntries]);
 
   // Polling effect
   // Polling interval ref
@@ -90,7 +89,7 @@ export default function EntryFeed() {
         pollingIntervalRef.current = null;
       }
     };
-  }, [pollingActive, entryType, status, sortBy, sortOrder, searchTerm]);
+  }, [pollingActive, entryType, status, sortBy, sortOrder, searchTerm, fetchEntries]);
 
   // Progress Toast & Polling Control
   React.useEffect(() => {

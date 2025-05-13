@@ -5,7 +5,7 @@ import Firecrawl from '@mendable/firecrawl-js';
 export type FirecrawlResult = {
   title: string;
   cleaned_content: string;
-  metadata: any;
+  metadata: Record<string, unknown> | Record<string, unknown>[] | null;
   error?: string;
 };
 
@@ -37,7 +37,7 @@ export async function runFirecrawl({ entryType, url }: { entryType: 'article' | 
         console.error(`[Firecrawl] scrapeUrl error:`, data.error, '\nFull response:', data);
         if ('status' in data) console.error(`[Firecrawl] scrapeUrl status:`, data.status);
         if ('message' in data) console.error(`[Firecrawl] scrapeUrl message:`, data.message);
-        return { title: url, cleaned_content: '', metadata: null, error: (typeof data.error === 'string' && data.error) || (typeof (data as any).message === 'string' && (data as any).message) || JSON.stringify(data) };
+        return { title: url, cleaned_content: '', metadata: null, error: (typeof data === 'object' && data !== null && 'error' in data && typeof (data as { error?: unknown }).error === 'string' && (data as { error: string }).error) || (typeof data === 'object' && data !== null && 'message' in data && typeof (data as { message?: unknown }).message === 'string' && (data as { message: string }).message) || JSON.stringify(data) };
       }
     } else {
       // company: synchronous crawl (no polling, no crawl ID)
@@ -54,7 +54,7 @@ export async function runFirecrawl({ entryType, url }: { entryType: 'article' | 
       console.log('[Firecrawl] crawlUrl preview:', preview + (preview.length === 200 ? '... [truncated]' : ''));
       if (!response || typeof response !== 'object' || response.success !== true || response.status !== 'completed') {
         console.error(`[Firecrawl] crawlUrl failed or incomplete. Full response:`, response);
-        return { title: url, cleaned_content: '', metadata: null, error: (typeof response === 'object' && response !== null && 'error' in response && typeof (response as any).error === 'string' && (response as any).error) || (typeof response === 'object' && response !== null && 'message' in response && typeof (response as any).message === 'string' && (response as any).message) || JSON.stringify(response) };
+        return { title: url, cleaned_content: '', metadata: null, error: (typeof response === 'object' && response !== null && 'error' in response && typeof (response as { error?: unknown }).error === 'string' && (response as { error: string }).error) || (typeof response === 'object' && response !== null && 'message' in response && typeof (response as { message?: unknown }).message === 'string' && (response as { message: string }).message) || JSON.stringify(response) };
       }
       if (!Array.isArray(response.data) || response.data.length === 0) {
         console.error(`[Firecrawl] crawlUrl returned no data.`);
@@ -62,13 +62,19 @@ export async function runFirecrawl({ entryType, url }: { entryType: 'article' | 
       }
       // Concatenate markdown from all data items
       return {
-        title: response.data[0]?.metadata?.title || url,
-        cleaned_content: response.data.map((d: any) => d.markdown || '').join('\n\n'),
-        metadata: response.data.map((d: any) => d.metadata || null),
+        title: Array.isArray(response.data) && response.data[0]?.metadata && typeof response.data[0].metadata === 'object' && 'title' in response.data[0].metadata ? (response.data[0].metadata as { title?: string }).title || url : url,
+        cleaned_content: Array.isArray(response.data) ? response.data.map((d: { markdown?: string }) => d.markdown || '').join('\n\n') : '',
+        metadata: Array.isArray(response.data) ? response.data.map((d: { metadata?: Record<string, unknown> }) => d.metadata).filter((m): m is Record<string, unknown> => m !== null && m !== undefined) : null,
       };
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(`[Firecrawl] Exception during ingestion:`, err);
-    return { title: url, cleaned_content: '', metadata: null, error: err?.message || 'Unknown error' };
+    let errorMsg = 'Unknown error';
+    if (err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+      errorMsg = (err as { message: string }).message;
+    } else {
+      errorMsg = String(err);
+    }
+    return { title: url, cleaned_content: '', metadata: null, error: errorMsg };
   }
 }

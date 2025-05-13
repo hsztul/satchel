@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import Link from "next/link";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,9 +33,9 @@ export default function RootLayout({
       >
         <header className="w-full border-b px-6 py-3 bg-white">
   <div className="max-w-2xl mx-auto flex items-center justify-between">
-    <a href="/" className="font-bold text-xl tracking-tight text-blue-700 hover:text-blue-900 transition-colors">
+    <Link href="/" className="font-bold text-xl tracking-tight text-blue-700 hover:text-blue-900 transition-colors">
       Satchel
-    </a>
+    </Link>
     <NavLinkSwitcher />
   </div>
 </header>

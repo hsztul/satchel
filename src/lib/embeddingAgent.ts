@@ -47,8 +47,14 @@ export async function embedChunksAndStore({
         return { success: false, error: error.message };
       }
       chunkOrder++;
-    } catch (err: any) {
-      return { success: false, error: err.message || String(err) };
+    } catch (err: unknown) {
+      let errorMsg = 'Unknown error';
+      if (err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+        errorMsg = (err as { message: string }).message;
+      } else {
+        errorMsg = String(err);
+      }
+      return { success: false, error: errorMsg };
     }
   }
   return { success: true };

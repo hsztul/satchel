@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   // 3. Prepare context
   const contextText = (chunks || [])
-    .map((c: any) => c.chunk_text)
+    .map((c: { chunk_text: string }) => c.chunk_text)
     .join("\n---\n");
 
   // 4. Call ai-sdk's streamText for streaming completion

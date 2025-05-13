@@ -17,14 +17,36 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trash } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 import { use as usePromise } from "react";
 
 export default function EntryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = usePromise(params);
   const entryId = resolvedParams?.id || "";
-  const [entry, setEntry] = useState<any>(null);
+
+  interface EntryType {
+    id: string;
+    title: string;
+    entry_type: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    summary?: string;
+    cleaned_content?: string;
+    metadata?: Record<string, unknown>;
+    source_url?: string;
+    llm_analysis?: {
+      perplexity_research?: {
+        full_perplexity_responses?: string;
+        citations?: string[];
+      };
+      keyTakeaways?: string[];
+      primaryConcepts?: string[];
+    };
+    [key: string]: unknown;
+  }
+
+  const [entry, setEntry] = useState<EntryType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [perplexityHtml, setPerplexityHtml] = useState<string>("");
@@ -68,58 +90,58 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
       )}
       {!loading && !error && entry && (
         <Card className="p-6">
-  <div className="mb-2">
-    <h2 className="text-2xl font-bold text-slate-800 w-full break-words mb-1">{entry.title || "Untitled"}</h2>
-    {entry.source_url && (
-      <div className="mb-2">
-        <a
-          href={entry.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1"
-          title={entry.source_url}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline-block mr-1 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656m-3.656-3.656a4 4 0 015.656 0m-7.778 7.778a4 4 0 010-5.656m3.656 3.656a4 4 0 01-5.656 0m7.778-7.778a4 4 0 010 5.656m-3.656-3.656a4 4 0 015.656 0" /></svg>
-          {entry.source_url}
-        </a>
-      </div>
-    )}
-    <div className="flex items-center gap-2 mb-2">
-      <Badge variant="outline" className="capitalize">{entry.entry_type}</Badge>
-      <Badge variant="secondary" className="capitalize">{entry.status}</Badge>
-      <button
-        type="button"
-        aria-label="Delete entry"
-        className="ml-auto p-1 rounded hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
-        title="Delete entry"
-        onClick={async () => {
-          if (!window.confirm("Delete this entry? This cannot be undone.")) return;
-          try {
-            const res = await fetch(`/api/entries/${entryId}`, { method: "DELETE" });
-            if (res.status === 204) {
-              toast.success("Entry deleted");
-              window.location.href = "/";
-            } else {
-              const data = await res.json();
-              toast.error(data.error || "Failed to delete entry");
-            }
-          } catch {
-            toast.error("Failed to delete entry");
-          }
-        }}
-      >
-        <Trash size={20} strokeWidth={2} />
-      </button>
-    </div>
-  </div>
+          <div className="mb-2">
+            <h2 className="text-2xl font-bold text-slate-800 w-full break-words mb-1">{entry.title || "Untitled"}</h2>
+            {entry.source_url && (
+              <div className="mb-2">
+                <a
+                  href={entry.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1"
+                  title={entry.source_url}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline-block mr-1 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656m-3.656-3.656a4 4 0 015.656 0m-7.778 7.778a4 4 0 010-5.656m3.656 3.656a4 4 0 01-5.656 0m7.778-7.778a4 4 0 010 5.656m-3.656-3.656a4 4 0 015.656 0" /></svg>
+                  {entry.source_url}
+                </a>
+              </div>
+            )}
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="outline" className="capitalize">{entry.entry_type}</Badge>
+              <Badge variant="secondary" className="capitalize">{entry.status}</Badge>
+              <button
+                type="button"
+                aria-label="Delete entry"
+                className="ml-auto p-1 rounded hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                title="Delete entry"
+                onClick={async () => {
+                  if (!window.confirm("Delete this entry? This cannot be undone.")) return;
+                  try {
+                    const res = await fetch(`/api/entries/${entryId}`, { method: "DELETE" });
+                    if (res.status === 204) {
+                      toast.success("Entry deleted");
+                      window.location.href = "/";
+                    } else {
+                      const data = await res.json();
+                      toast.error(data.error || "Failed to delete entry");
+                    }
+                  } catch {
+                    toast.error("Failed to delete entry");
+                  }
+                }}
+              >
+                <Trash size={20} strokeWidth={2} />
+              </button>
+            </div>
+          </div>
           <div className="text-xs text-slate-500 mb-4">
-            Created: {new Date(entry.created_at).toLocaleString()} | Updated: {new Date(entry.updated_at).toLocaleString()}
+            Created: {entry.created_at ? new Date(entry.created_at).toLocaleString() : 'N/A'} | Updated: {entry.updated_at ? new Date(entry.updated_at).toLocaleString() : 'N/A'}
           </div>
           {entry.summary && (
             <div className="mb-4">
               <h3 className="font-semibold mb-1">Summary</h3>
               <div className="prose prose-sm max-w-none bg-slate-50 rounded p-3 border text-slate-800">
-                <ReactMarkdown>{entry.summary}</ReactMarkdown>
+                <ReactMarkdown>{typeof entry.summary === 'string' ? entry.summary : ''}</ReactMarkdown>
               </div>
             </div>
           )}
@@ -130,14 +152,19 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    code({ node, inline, className, children, ...props }: {
-  node?: any;
-  inline?: boolean;
-  className?: string;
-  children?: React.ReactNode;
-  [key: string]: any;
-}) {
+                    code({ inline, className, children, ...props }: {
+                      inline?: boolean;
+                      className?: string;
+                      children?: React.ReactNode;
+                      [key: string]: unknown;
+                    }) {
                       const match = /language-(\w+)/.exec(className || '');
+                      // Defensive: children could be string | string[] | undefined
+                      const codeString = Array.isArray(children)
+                        ? children.join('')
+                        : typeof children === 'string'
+                        ? children
+                        : '';
                       return !inline && match ? (
                         <SyntaxHighlighter
                           style={nord}
@@ -145,20 +172,20 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
                           PreTag="div"
                           {...props}
                         >
-                          {String(children).replace(/\n$/, '')}
+                          {codeString.replace(/\n$/, '')}
                         </SyntaxHighlighter>
                       ) : (
                         <code className={className} {...props}>
-                          {children}
+                          {codeString}
                         </code>
                       );
                     }
                   }}
                 >
-                  {perplexityHtml}
+                  {typeof perplexityHtml === 'string' ? perplexityHtml : ''}
                 </ReactMarkdown>
               </div>
-              {Array.isArray(entry.llm_analysis.perplexity_research.citations) && entry.llm_analysis.perplexity_research.citations.length > 0 && (
+              {entry.llm_analysis && entry.llm_analysis.perplexity_research && Array.isArray(entry.llm_analysis.perplexity_research.citations) && entry.llm_analysis.perplexity_research.citations.length > 0 && (
                 <div className="mt-3">
                   <div className="font-medium text-slate-700 mb-1">References</div>
                   <ol className="list-decimal list-inside space-y-1 text-xs text-slate-700">
@@ -180,7 +207,6 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
               )}
             </div>
           )}
-
           {entry.llm_analysis && (Array.isArray(entry.llm_analysis.keyTakeaways) || Array.isArray(entry.llm_analysis.primaryConcepts)) && (
             <div className="mb-4">
               <h3 className="font-semibold mb-1">Analysis</h3>
@@ -214,7 +240,7 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
                 Source Content <span className="ml-1 text-xs text-slate-500">(click to expand)</span>
               </summary>
               <pre className="bg-slate-50 rounded p-3 border text-xs overflow-x-auto text-slate-700 mt-2">
-                {entry.cleaned_content}
+                {typeof entry.cleaned_content === 'string' ? entry.cleaned_content : ''}
               </pre>
             </details>
           )}
@@ -224,7 +250,7 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
                 Metadata <span className="ml-1 text-xs text-slate-500">(click to expand)</span>
               </summary>
               <pre className="bg-slate-50 rounded p-3 border text-xs overflow-x-auto text-slate-700 mt-2">
-                {JSON.stringify(entry.metadata, null, 2)}
+                {entry.metadata ? JSON.stringify(entry.metadata, null, 2) : ''}
               </pre>
             </details>
           )}
