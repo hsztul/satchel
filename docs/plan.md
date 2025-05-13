@@ -159,10 +159,10 @@ Reference: PRD Section 5.4.2.
 ## Phase 9: Chat Functionality (RAG)
 
 ### Set up Vercel AI SDK Chat API Route
-- **Action:** Create API route (`pages/api/chat.js`) using Vercel AI SDK handler (`experimental_generateText` or similar).
+- [ ] **Action:** Create API route (`pages/api/chat.js`) using Vercel AI SDK handler (`experimental_generateText` or similar).
 
 ### Implement RAG Logic in Chat API Route
-- **Action:** Inside the handler:
+- [ ] **Action:** Inside the handler:
   - Embed latest user query.
   - Perform semantic search on `entry_chunks` table via Supabase/pgvector.
   - Prepare context from retrieved chunks.
@@ -172,5 +172,7 @@ Reference: PRD Section 5.4.2.
 - **Reference:** PRD Section 5.7.
 
 ### Implement Chat UI Component
-- **Action:** Create a React component using Vercel AI SDK hooks (`useChat`). Display conversation history, input field. Style appropriately. Place this component where desired (e.g., on the main page or a dedicated `/chat` page).
+- [x] **Action:** Create a React component using Vercel AI SDK hooks (`useChat`). Display conversation history, input field. Style appropriately. Place this component where desired (e.g., on the main page or a dedicated `/chat` page).
+- [x] **Action:** Create a dedicated `/chat` page and route in the App Router.
+- [x] **Action:** Add a header link that toggles between "Dashboard" and "Chat" depending on the current page, using Next.js `<Link>`.
 - **Reference:** PRD Section 5.7.2, Vercel AI SDK documentation.
