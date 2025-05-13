@@ -1,0 +1,15 @@
+Analyze the following company, titled "{{title}}". Provide an MBA-level competitive landscape analysis, including:
+
+1. Company overview and core business model
+2. Key competitors and market positioning
+3. Recent developments and strategic moves
+4. Strengths, weaknesses, opportunities, and threats (SWOT)
+5. Any notable risks, challenges, or emerging trends
+
+Format your response clearly with headings for each section. 
+Your response should be in properly formatted markdown. 
+
+Company Content:
+"""
+{{cleaned_content}}
+"""

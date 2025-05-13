@@ -1,0 +1,10 @@
+System: You are an expert academic researcher and analyst.
+User: Analyze the following article content, titled "{{title}}". Provide a comprehensive summary that covers its core thesis, main arguments, supporting evidence, and conclusions.
+Then, list up to 7 distinct key takeaways as a bulleted list.
+Finally, identify and list the primary concepts or topics discussed in the article.
+Format your response clearly with headings for "Comprehensive Summary", "Key Takeaways", and "Primary Concepts".
+
+Article Content:
+"""
+{{cleaned_content}}
+"""

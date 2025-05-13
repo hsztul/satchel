@@ -16,10 +16,10 @@
 ## Phase 1: Project Setup & Core Backend Foundation
 
 ### Initialize Next.js Project
-- **Action:** Create a new Next.js project named `satchel`.
-- Install Tailwind CSS and configure it.
-- Install Supabase client library (`@supabase/supabase-js`).
-- Install Vercel AI SDK (`ai`).
+- **Action:** Create a new Next.js project named `satchel`. ✅
+- Install Tailwind CSS and configure it. ✅
+- Install Supabase client library (`@supabase/supabase-js`). ✅
+- Install Vercel AI SDK (`ai`). ✅
 - Install any necessary HTTP client libraries (e.g., `axios` or use `fetch`).
 
 ### Supabase Project Setup (Credentials)
@@ -27,15 +27,15 @@
   ```sql
   CREATE EXTENSION IF NOT EXISTS vector;
   ```
-- **Action (AI):** Obtain Supabase Project URL and Anon Key. Store these securely as environment variables (e.g., `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
+- **Action (AI):** Obtain Supabase Project URL and Anon Key. Store these securely as environment variables (e.g., `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`). 
 
 ### Define Database Schema via Integration
-- **Action:** Use server integration to define and apply the database schema for the `entries` and `entry_chunks` tables in Supabase.
+- **Action:** Use server integration to define and apply the database schema for the `entries` and `entry_chunks` tables in Supabase. 
 - **Reference:** PRD Section 4 ("Data Models"). Ensure all columns, types, constraints, and basic indexes match the PRD.
 - **Verification:** Confirm tables are created successfully in Supabase after the integration runs.
 
 ### Create Supabase Client Utility
-- **Action:** Create a utility file (e.g., `lib/supabaseClient.js` or `lib/supabase.js`) to initialize and export the Supabase client instance using the environment variables.
+- **Action:** Create a utility file (e.g., `lib/supabaseClient.js` or `lib/supabase.js`) to initialize and export the Supabase client instance using the environment variables. 
 
 ## Phase 2: Entry Ingestion – Initial Steps & API Route
 
@@ -44,38 +44,39 @@
 - **Action:** Create the Next.js API route file (e.g., `pages/api/ingest-entry.js`).
 - Implement basic request handling (`POST` method).
 - Validate incoming request body (see PRD Section 5.1.3).
-- Perform initial database insert into `entries` table with `status: 'pending'`, `source_url`, and `entry_type` (PRD Section 5.1.4, Step 2).
-- Immediately return the `entryId` and `status: 'pending'` response to the client (PRD Section 5.1.3).
-- Asynchronous processing continues:
-  - Update `entries.status` to `'scraping_website'`.
-  - **Single Scrape Call:**
-    - **Articles:** Call `firecrawl_scrape(url=source_url, formats=['markdown', 'metadata'])`. Request markdown content and metadata in one call.
-    - **Companies:** Call `firecrawl_crawl(url=source_url, maxDepth=3, scrapeOptions={'formats': ['markdown', 'metadata']})`. Request markdown and metadata. (Handle async nature as noted in PRD.)
-  - **Extract Title & Store Content:**
-    - From the Firecrawl response, extract the page title (from metadata or inferred).
-    - Store the extracted title in `entries.title`.
-    - Store the cleaned markdown/text content in `entries.cleaned_content`.
-    - Store any relevant extracted metadata (author, pub date) in `entries.metadata`.
-  - Update `entries.status` to `'processing_scraped_content'`.
+- [x] Perform initial database insert into `entries` table with `status: 'pending'`, `source_url`, and `entry_type` (PRD Section 5.1.4, Step 2).
+- [x] Immediately return the `entryId` and `status: 'pending'` response to the client (PRD Section 5.1.3).
+- [x] Asynchronous processing continues:
+  - [x] Update `entries.status` to `'scraping_website'`.
+  - [x] **Single Scrape Call:**
+    - [x] **Articles:** Call `firecrawl_scrape(url=source_url, formats=['markdown'])`. Request markdown content and metadata in one call.
+    - [ ] **Companies:** _(Deferred)_ Call `firecrawl_crawl(url=source_url, maxDepth=3, scrapeOptions={'formats': ['markdown', 'metadata']})`. Request markdown and metadata. (Handle async nature as noted in PRD.)
+      - **Note:** Company crawling is deferred for future implementation. Revisit this step later.
+  - [x] **Extract Title & Store Content:**
+    - [x] From the Firecrawl response, extract the page title (from metadata or inferred).
+    - [x] Store the extracted title in `entries.title`.
+    - [x] Store the cleaned markdown/text content in `entries.cleaned_content`.
+    - [x] Store any relevant extracted metadata (author, pub date) in `entries.metadata`.
+  - [x] Update `entries.status` to `'processing_scraped_content'`.
   - _(Stop Here for this Phase):_ The API route's asynchronous work pauses here. Subsequent processing (LLM calls, embedding) will be triggered later in the flow (conceptually, though implemented within this same async continuation).
 - **Reference:** PRD Sections 5.1.3, 5.1.4 (Steps 1–6 combined & optimized).
 
 ## Phase 3: Frontend – Main Page Layout & Entry Input
 
-### Create Basic App Layout Component
+- [x] Create Basic App Layout Component
 
 - **Action:** Implement a global layout component (e.g., create `components/Layout.js` and use it in page files).
 - Include a header with the app name "Satchel" (see PRD Section 3).
 - Set up basic page structure and Tailwind CSS base styles for the "old-school Twitter vibe."
 
-### Implement Entry Input Form Component
+- [x] Implement Entry Input Form Component
 
 - **Action:** Create a React component for the entry input form.
 - Include fields for "Entry Type" (Dropdown/Radio: Article, Company) and "URL" (see PRD Section 5.1.2).
 - On submit, call the `POST /api/ingest-entry` API.
 - Provide UI feedback (loading state, success/error messages). Display `'pending'` status from the API response.
 
-### Implement Entry List Component
+- [x] Implement Entry List Component
 
 - **Action:** Create a React component to display a list of entries (from Supabase, ordered by `created_at desc`).
 - Show entry title, entry type, status, and created date.
@@ -90,6 +91,7 @@ Style according to the "old-school Twitter vibe."
 Make each entry item clickable, linking to /entry/[id].
 Place this component below the entry input form on the main page.
 Reference: PRD Section 5.4.2.
+
 ## Phase 5: Content Processing – Articles (Backend Logic Continuation)
 
 ### Article Summarization Logic (within `/api/ingest-entry` async flow)
@@ -131,7 +133,7 @@ Reference: PRD Section 5.4.2.
   - _(Proceed to Phase 7: Data Finalization)_
 - **Reference:** PRD Section 5.3.2, Step 6–8.
 
-## Phase 7: Data Finalization (Embedding, Backend Logic Continuation)
+## Phase 7: Data Finalization (Embedding, Backend Logic Continuation) ✅
 
 ### Text Chunking and Embedding Logic (within `/api/ingest-entry` async flow)
 - **Trigger:** Runs after all LLM processing (summarization for articles, or report synthesis for companies) is complete for an entry, just before marking it `'complete'`.

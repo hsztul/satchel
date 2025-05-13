@@ -1,0 +1,15 @@
+Summarize the following company website. Your summary should be concise, objective, and written for a business analyst audience. Focus on:
+
+1. What does the company do? (core product/service, business model)
+2. Who are its customers and markets?
+3. What are its main strengths and weaknesses?
+4. Any recent news, strategic moves, or notable trends?
+
+Do NOT refer to the content as an "article." Do NOT speculate. Use only the information provided.
+
+Company Name: {{title}}
+
+Website Content:
+"""
+{{cleaned_content}}
+"""
