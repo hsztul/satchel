@@ -32,8 +32,8 @@ export default function EntryFeed() {
   const [sortBy, setSortBy] = useState<string>("created_at");
   const [sortOrder, setSortOrder] = useState<string>("desc");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedIndustry, setSelectedIndustry] = useState<string | undefined>(undefined);
-  const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+
   const [pollingActive, setPollingActive] = useState(true);
   const pollingToastId = React.useRef<string | number | null>(null);
 
@@ -48,7 +48,7 @@ export default function EntryFeed() {
     const params = new URLSearchParams({
       ...(entryType ? { entryType } : {}),
       ...(status ? { status } : {}),
-      ...(selectedIndustry ? { industry: selectedIndustry } : {}),
+      ...(selectedIndustries.length > 0 ? { industry: selectedIndustries.join(',') } : {}),
       sortBy,
       sortOrder,
       ...(searchTerm ? { searchTerm } : {}),
@@ -68,30 +68,12 @@ export default function EntryFeed() {
         if (opts?.userInitiated) setLoading(false);
         fetchingRef.current = false;
       });
-  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustry]);
+  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustries]);
 
   // Fetch on mount and whenever filters change
-  // Fetch available industries
-  const fetchIndustries = React.useCallback(async () => {
-    try {
-      const res = await fetch('/api/industries');
-      const data = await res.json();
-      if (data.industries) {
-        setAvailableIndustries(data.industries);
-      }
-    } catch (err) {
-      console.error('Failed to fetch industries:', err);
-    }
-  }, []);
-
   useEffect(() => {
     fetchEntries({ userInitiated: true });
-  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustry, fetchEntries]);
-
-  // Fetch industries on mount
-  useEffect(() => {
-    fetchIndustries();
-  }, [fetchIndustries]);
+  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustries, fetchEntries]);
 
   // Polling effect
   // Polling interval ref
@@ -112,7 +94,7 @@ export default function EntryFeed() {
         pollingIntervalRef.current = null;
       }
     };
-  }, [pollingActive, entryType, status, sortBy, sortOrder, searchTerm, selectedIndustry, fetchEntries]);
+  }, [pollingActive, entryType, status, sortBy, sortOrder, searchTerm, selectedIndustries, fetchEntries]);
 
   // Progress Toast & Polling Control
   React.useEffect(() => {
@@ -161,6 +143,8 @@ export default function EntryFeed() {
     }
   }, [entries]);
 
+
+
   return (
     <div>
       {/* Filter/sort/search controls */}
@@ -200,17 +184,52 @@ export default function EntryFeed() {
                 <SelectItem value="failed">Failed</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={selectedIndustry || "all"} onValueChange={(value) => setSelectedIndustry(value === "all" ? undefined : value)}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Filter by Industry" />
+            <Select
+              value={selectedIndustries.length === 0 ? "all" : selectedIndustries[0]}
+              onValueChange={(value) => {
+                if (value === "all") {
+                  setSelectedIndustries([]);
+                } else if (selectedIndustries.includes(value)) {
+                  setSelectedIndustries(selectedIndustries.filter(i => i !== value));
+                } else {
+                  setSelectedIndustries([...selectedIndustries, value]);
+                }
+              }}
+            >
+              <SelectTrigger className="w-[280px]">
+                <SelectValue>
+                  {selectedIndustries.length === 0
+                    ? "All industries"
+                    : `${selectedIndustries.length} selected`}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Industries</SelectItem>
-                {availableIndustries.map((industry) => (
-                  <SelectItem key={industry} value={industry}>
-                    {industry}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIndustries.length === 0}
+                      className="h-4 w-4 rounded border-gray-300"
+                      readOnly
+                    />
+                    All industries
+                  </div>
+                </SelectItem>
+                {Array.from(new Set(entries.flatMap((entry) => entry.industries || [])))
+                  .sort()
+                  .map((industry) => (
+                    <SelectItem key={industry} value={industry}>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedIndustries.includes(industry)}
+                          className="h-4 w-4 rounded border-gray-300"
+                          readOnly
+                        />
+                        {industry}
+                      </div>
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
@@ -244,7 +263,13 @@ export default function EntryFeed() {
         </div>
       )}
       {/* Entry List */}
-      {!loading && !error && entries.map((entry) => (
+      {!loading && !error && entries
+        .filter((entry) => {
+          if (selectedIndustries.length === 0) return true;
+          const industries = entry.industries || [];
+          return selectedIndustries.some(selected => industries.includes(selected));
+        })
+        .map((entry) => (
         <Link key={entry.id} href={`/entry/${entry.id}`} className="block mb-6">
           <Card className="p-4 hover:shadow-md transition cursor-pointer">
             <div className="flex flex-col gap-2">
