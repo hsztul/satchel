@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 // DELETE /api/entries/[id]: Deletes an entry by id
 export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
-  const { id } = await context.params;
+  const { id } = context.params;
   if (!id) {
     return NextResponse.json({ error: 'Missing entry id' }, { status: 400 });
   }
@@ -16,7 +16,7 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
 
 // GET /api/entries/[id]: Returns a single entry by id
 export async function GET(request: NextRequest, context: { params: { id: string } }) {
-  const { id } = await context.params;
+  const { id } = context.params;
   if (!id) {
     return NextResponse.json({ error: 'Missing entry id' }, { status: 400 });
   }
