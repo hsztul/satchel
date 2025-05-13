@@ -17,7 +17,7 @@ export async function getCompanySummaryFromExa(url: string) {
 
   try {
     const requestOptions = {
-      text: true,
+      text: {}, // Exa SDK expects true or an object, {} is safest
       summary: { query: summaryPrompt },
       subpages: 2,
       subpageTarget: "about, mission, team, careers, leadership"
@@ -29,13 +29,20 @@ export async function getCompanySummaryFromExa(url: string) {
 
     const result = response?.results?.[0] || {};
 
-    return {
-      title: result.title || url,
-      summary: result.summary || "",
-      cleaned_content: result.text || "",
-      url: result.url || url,
-      exaRaw: result
-    };
+    let summary = "";
+if (typeof result.summary === "string") {
+  summary = result.summary;
+} else if (result.summary && typeof result.summary === "object" && "summary" in result.summary) {
+  summary = (result.summary as { summary?: string }).summary || "";
+}
+
+return {
+  title: result.title || url,
+  summary,
+  cleaned_content: result.text || "",
+  url: result.url || url,
+  exaRaw: result
+};
   } catch (err) {
     console.error('[ExaAgent] Error in getCompanySummaryFromExa:', err);
     throw err;

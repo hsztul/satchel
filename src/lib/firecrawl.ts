@@ -37,7 +37,7 @@ export async function runFirecrawl({ entryType, url }: { entryType: 'article' | 
         console.error(`[Firecrawl] scrapeUrl error:`, data.error, '\nFull response:', data);
         if ('status' in data) console.error(`[Firecrawl] scrapeUrl status:`, data.status);
         if ('message' in data) console.error(`[Firecrawl] scrapeUrl message:`, data.message);
-        return { title: url, cleaned_content: '', metadata: null, error: data.error || data.message || JSON.stringify(data) };
+        return { title: url, cleaned_content: '', metadata: null, error: (typeof data.error === 'string' && data.error) || (typeof (data as any).message === 'string' && (data as any).message) || JSON.stringify(data) };
       }
     } else {
       // company: synchronous crawl (no polling, no crawl ID)
@@ -54,7 +54,7 @@ export async function runFirecrawl({ entryType, url }: { entryType: 'article' | 
       console.log('[Firecrawl] crawlUrl preview:', preview + (preview.length === 200 ? '... [truncated]' : ''));
       if (!response || typeof response !== 'object' || response.success !== true || response.status !== 'completed') {
         console.error(`[Firecrawl] crawlUrl failed or incomplete. Full response:`, response);
-        return { title: url, cleaned_content: '', metadata: null, error: response?.error || response?.message || JSON.stringify(response) };
+        return { title: url, cleaned_content: '', metadata: null, error: (typeof response === 'object' && response !== null && 'error' in response && typeof (response as any).error === 'string' && (response as any).error) || (typeof response === 'object' && response !== null && 'message' in response && typeof (response as any).message === 'string' && (response as any).message) || JSON.stringify(response) };
       }
       if (!Array.isArray(response.data) || response.data.length === 0) {
         console.error(`[Firecrawl] crawlUrl returned no data.`);

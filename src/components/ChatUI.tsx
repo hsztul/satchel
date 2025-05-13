@@ -69,7 +69,7 @@ export default function ChatUI() {
           <div className="text-red-600 mb-2">Something went wrong.</div>
           <button
             type="button"
-            onClick={reload}
+            onClick={() => reload()}
             className="bg-red-500 text-white rounded px-3 py-1 text-xs hover:bg-red-600"
           >
             Retry
