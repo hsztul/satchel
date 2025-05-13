@@ -1,25 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { processArticleEntry } from '@/lib/processArticleEntry';
 import { processCompanyEntry } from '@/lib/processCompanyEntry';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const entryId = params.id;
+export async function POST(request: Request) {
+  const segments = request.url.split('/');
+  const entryId = segments[segments.length - 2]; // Get the ID from the URL
 
   try {
     // Get the entry
-    const { data: entry, error: getError } = await supabase
+    const { data: entry, error } = await supabase
       .from('entries')
       .select('*')
       .eq('id', entryId)
       .single();
 
-    if (getError || !entry) {
+    if (error || !entry) {
       return NextResponse.json(
-        { error: getError?.message || 'Entry not found' },
+        { error: error?.message || 'Entry not found' },
         { status: 404 }
       );
     }

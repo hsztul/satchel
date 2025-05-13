@@ -106,22 +106,26 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
     void fetchEntry();
 
     // Set up polling for processing status
-    const pollInterval = setInterval(async () => {
-      if (!entry) return;
-      if (!["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"].includes(entry.status)) {
-        return;
-      }
-      try {
-        const res = await fetch(`/api/entries/${entryId}`);
-        const data = await res.json();
-        if (!data.error) setEntry(data);
-      } catch (err) {
-        console.error('Error polling entry:', err);
-      }
-    }, 2000); // Poll every 2 seconds
+    const processingStatuses = ["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"];
+    const shouldPoll = entry && processingStatuses.includes(entry.status);
 
-    return () => clearInterval(pollInterval);
-  }, [entryId, entry?.status]);
+    let pollInterval: NodeJS.Timeout | null = null;
+    if (shouldPoll) {
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/entries/${entryId}`);
+          const data = await res.json();
+          if (!data.error) setEntry(data);
+        } catch (err) {
+          console.error('Error polling entry:', err);
+        }
+      }, 2000); // Poll every 2 seconds
+    }
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [entryId, entry]);
 
   useEffect(() => {
     if (!entry?.llm_analysis?.perplexity_research?.full_perplexity_responses) {
