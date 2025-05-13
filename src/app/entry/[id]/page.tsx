@@ -104,28 +104,35 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
       }
     };
     void fetchEntry();
+  }, [entryId]);
 
-    // Set up polling for processing status
+  // Separate effect for polling
+  useEffect(() => {
+    if (!entryId || !entry) return;
+
     const processingStatuses = ["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"];
-    const shouldPoll = entry && processingStatuses.includes(entry.status);
+    const shouldPoll = processingStatuses.includes(entry.status);
 
-    let pollInterval: NodeJS.Timeout | null = null;
-    if (shouldPoll) {
-      pollInterval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/entries/${entryId}`);
-          const data = await res.json();
-          if (!data.error) setEntry(data);
-        } catch (err) {
-          console.error('Error polling entry:', err);
+    if (!shouldPoll) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/entries/${entryId}`);
+        const data = await res.json();
+        if (!data.error) {
+          setEntry(data);
+          // Stop polling if status is no longer processing
+          if (!processingStatuses.includes(data.status)) {
+            clearInterval(pollInterval);
+          }
         }
-      }, 2000); // Poll every 2 seconds
-    }
+      } catch (err) {
+        console.error('Error polling entry:', err);
+      }
+    }, 2000); // Poll every 2 seconds
 
-    return () => {
-      if (pollInterval) clearInterval(pollInterval);
-    };
-  }, [entryId, entry]);
+    return () => clearInterval(pollInterval);
+  }, [entryId, entry?.status]); // Only re-run when status changes
 
   useEffect(() => {
     if (!entry?.llm_analysis?.perplexity_research?.full_perplexity_responses) {
