@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 
 import { Trash } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface Entry {
   id: string;
@@ -213,6 +214,9 @@ export default function EntryFeed() {
           <Card className="p-4 flex flex-col gap-1 hover:shadow-md transition cursor-pointer">
             <div className="flex items-center gap-2">
                 <span className="font-semibold text-lg text-slate-800">{entry.title || "Untitled"}</span>
+                {["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"].includes(entry.status) && (
+                  <Spinner size={18} className="ml-2" />
+                )}
                 <Badge variant="outline" className="ml-2 text-xs capitalize">{entry.entry_type}</Badge>
                 <Badge variant="secondary" className="ml-2 text-xs capitalize">{entry.status}</Badge>
                 <button

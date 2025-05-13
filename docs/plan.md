@@ -175,4 +175,32 @@ Reference: PRD Section 5.4.2.
 - [x] **Action:** Create a React component using Vercel AI SDK hooks (`useChat`). Display conversation history, input field. Style appropriately. Place this component where desired (e.g., on the main page or a dedicated `/chat` page).
 - [x] **Action:** Create a dedicated `/chat` page and route in the App Router.
 - [x] **Action:** Add a header link that toggles between "Dashboard" and "Chat" depending on the current page, using Next.js `<Link>`.
+
+## Phase 10: Polish and Industry Features
+- [ ] **Action:** Add loading indicator for processing entries
+  - Add inline loading spinner next to entry title
+  - Update EntryCard component to show/hide based on status
+  - Add real-time status updates using Supabase subscription
+  - Ensure indicator clears on completion/failure
+
+- [ ] **Action:** Add industries extraction to summarization
+  - Add industries field to entries table (array of strings)
+  - Update article and company summary prompts to extract industries
+  - Modify summarization code to store extracted industries
+
+- [ ] **Action:** Add industry filtering to entry feed
+  - Add industry filter dropdown component
+  - Update entry feed query to filter by industry
+  - Add industry tags to entry cards
+
+- [ ] **Action:** Enhance vector store with industry data
+  - Update chunking to include industry context
+  - Modify embedding generation to incorporate industry information
+  - Update relevant queries to leverage industry context
+
+- [ ] **Action:** Add entry reprocessing UI
+  - Add dropdown menu to entry view page
+  - Move delete button to dropdown
+  - Add reprocess button with circular arrow icon
+  - Implement reprocessing functionality using existing ingest pipeline
 - **Reference:** PRD Section 5.7.2, Vercel AI SDK documentation.
