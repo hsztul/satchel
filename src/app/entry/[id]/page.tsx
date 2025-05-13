@@ -1,11 +1,38 @@
 "use client";
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 // Optional: Add syntax highlighting
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { nord } from "react-syntax-highlighter/dist/cjs/styles/prism";
+
+// Correctly typed custom code renderer for ReactMarkdown
+const components: Components = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  code({ inline, className, children, ...props }: any) {
+    const match = /language-(\w+)/.exec(className || "");
+    const codeString = Array.isArray(children)
+      ? children.join("")
+      : typeof children === "string"
+      ? children
+      : "";
+    return !inline && match ? (
+      <SyntaxHighlighter
+        style={nord}
+        language={match[1]}
+        PreTag="div"
+        {...props}
+      >
+        {codeString.replace(/\n$/, "")}
+      </SyntaxHighlighter>
+    ) : (
+      <code className={className} {...props}>
+        {codeString}
+      </code>
+    );
+  },
+};
 
 function cleanMarkdown(md: string): string {
   // Remove leading/trailing triple backticks and optional language hint
@@ -149,38 +176,12 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
             <div className="mb-4">
               <h3 className="font-semibold mb-1">Perplexity Research</h3>
               <div className="prose prose-sm max-w-full bg-indigo-50 rounded p-3 border text-slate-800">
+                {/**
+                 * Use a correctly typed custom code renderer for ReactMarkdown
+                 */}
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  components={{
-                    code({ inline, className, children, ...props }: {
-                      inline?: boolean;
-                      className?: string;
-                      children?: React.ReactNode;
-                      [key: string]: unknown;
-                    }) {
-                      const match = /language-(\w+)/.exec(className || '');
-                      // Defensive: children could be string | string[] | undefined
-                      const codeString = Array.isArray(children)
-                        ? children.join('')
-                        : typeof children === 'string'
-                        ? children
-                        : '';
-                      return !inline && match ? (
-                        <SyntaxHighlighter
-                          style={nord}
-                          language={match[1]}
-                          PreTag="div"
-                          {...props}
-                        >
-                          {codeString.replace(/\n$/, '')}
-                        </SyntaxHighlighter>
-                      ) : (
-                        <code className={className} {...props}>
-                          {codeString}
-                        </code>
-                      );
-                    }
-                  }}
+                  components={components}
                 >
                   {typeof perplexityHtml === 'string' ? perplexityHtml : ''}
                 </ReactMarkdown>

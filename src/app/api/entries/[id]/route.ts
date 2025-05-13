@@ -1,9 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
 // DELETE /api/entries/[id]: Deletes an entry by id
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
-  const { id } = context.params;
+export async function DELETE(request: NextRequest, context: unknown) {
+  let id: string | undefined;
+  if (
+    typeof context === "object" &&
+    context !== null &&
+    "params" in context &&
+    typeof (context as any).params === "object" &&
+    (context as any).params !== null &&
+    "id" in (context as any).params
+  ) {
+    id = (context as { params: { id: string } }).params.id;
+  }
   if (!id) {
     return NextResponse.json({ error: 'Missing entry id' }, { status: 400 });
   }
@@ -15,8 +26,18 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
 }
 
 // GET /api/entries/[id]: Returns a single entry by id
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
-  const { id } = context.params;
+export async function GET(request: NextRequest, context: unknown) {
+  let id: string | undefined;
+  if (
+    typeof context === "object" &&
+    context !== null &&
+    "params" in context &&
+    typeof (context as any).params === "object" &&
+    (context as any).params !== null &&
+    "id" in (context as any).params
+  ) {
+    id = (context as { params: { id: string } }).params.id;
+  }
   if (!id) {
     return NextResponse.json({ error: 'Missing entry id' }, { status: 400 });
   }
