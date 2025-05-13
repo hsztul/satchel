@@ -1,21 +1,19 @@
-import fs from "fs/promises";
-import path from "path";
 import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
+import { ARTICLE_SUMMARY_PROMPT, COMPANY_SUMMARY_PROMPT } from './prompts';
 
 /**
- * Reads a prompt template from the prompts directory and injects variables.
- * @param {string} promptFile - Filename under /src/prompts (e.g. 'article-summary.txt')
+ * Injects variables into a prompt template.
+ * @param {string} template - The prompt template
  * @param {Record<string, string>} vars - Map of variable names to inject (e.g. { title, cleaned_content })
  */
-export async function loadPrompt(promptFile: string, vars: Record<string, string>): Promise<string> {
-  const promptPath = path.join(process.cwd(), "src", "prompts", promptFile);
-  let template = await fs.readFile(promptPath, "utf8");
+export function injectPromptVars(template: string, vars: Record<string, string>): string {
+  let result = template;
   for (const [key, value] of Object.entries(vars)) {
-    template = template.replaceAll(`{{${key}}}`, value);
+    result = result.replaceAll(`{{${key}}}`, value);
   }
-  return template;
+  return result;
 }
 
 /**
@@ -46,7 +44,7 @@ export async function summarizeArticleWithLLM(prompt: string) {
  * Main agent for article summarization. Loads prompt, injects content, calls LLM, returns summary.
  */
 export async function summarizeArticle({ title, cleaned_content }: { title: string; cleaned_content: string }) {
-  const prompt = await loadPrompt("article-summary.txt", { title, cleaned_content });
+  const prompt = injectPromptVars(ARTICLE_SUMMARY_PROMPT, { title, cleaned_content });
   return summarizeArticleWithLLM(prompt);
 }
 
@@ -54,6 +52,6 @@ export async function summarizeArticle({ title, cleaned_content }: { title: stri
  * Main agent for company summarization. Loads prompt, injects content, calls LLM, returns summary.
  */
 export async function summarizeCompany({ title, cleaned_content }: { title: string; cleaned_content: string }) {
-  const prompt = await loadPrompt("company-summary.txt", { title, cleaned_content });
+  const prompt = injectPromptVars(COMPANY_SUMMARY_PROMPT, { title, cleaned_content });
   return summarizeArticleWithLLM(prompt);
 }

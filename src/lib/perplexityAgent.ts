@@ -1,5 +1,7 @@
 import { perplexity } from "@ai-sdk/perplexity";
 import { generateText } from "ai";
+import { COMPANY_RESEARCH_PROMPT } from './prompts';
+import { injectPromptVars } from './aiAgent';
 
 export async function runPerplexityResearch({ title, cleaned_content }: { title: string; cleaned_content: string }) {
   try {
@@ -7,10 +9,7 @@ export async function runPerplexityResearch({ title, cleaned_content }: { title:
       title,
       cleaned_content_length: cleaned_content?.length,
     });
-    const prompt = await (async () => {
-      const res = await import("./aiAgent");
-      return res.loadPrompt("company-research.txt", { title, cleaned_content });
-    })();
+    const prompt = injectPromptVars(COMPANY_RESEARCH_PROMPT, { title, cleaned_content });
     console.log('[Perplexity] Prompt (first 400 chars):', prompt.slice(0, 400));
     const result = await generateText({
       model: perplexity("sonar-deep-research"),
