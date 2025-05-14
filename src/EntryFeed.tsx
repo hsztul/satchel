@@ -310,17 +310,7 @@ export default function EntryFeed() {
         .map((entry) => (
         <Link key={entry.id} href={`/entry/${entry.id}`} className="block mb-6">
           <Card className="p-4 hover:shadow-md transition cursor-pointer relative">
-            {/* Comment count badge */}
-            {(() => {
-              const commentCount = allNotes.filter(
-                (note: Note) => Array.isArray(note.reference_entry_ids) && note.reference_entry_ids.includes(entry.id)
-              ).length;
-              return commentCount > 0 ? (
-                <span className="absolute top-3 right-3 bg-slate-200 text-slate-700 text-xs font-semibold rounded-full px-2 py-0.5 border border-slate-300 select-none">
-                  💬 {commentCount}
-                </span>
-              ) : null;
-            })()}
+
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-lg text-slate-800 truncate">{entry.title || "Untitled"}</span>
@@ -359,31 +349,43 @@ export default function EntryFeed() {
               )}
               <div className="flex items-center justify-between mt-1">
                 <div className="text-xs text-slate-500">{new Date(entry.created_at).toLocaleString()}</div>
-                <button
-                  type="button"
-                  aria-label="Delete entry"
-                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!window.confirm('Are you sure you want to delete this entry?')) {
-                      return;
-                    }
-                    try {
-                      const res = await fetch(`/api/entries/${entry.id}`, {
-                        method: 'DELETE',
-                      });
-                      if (!res.ok) {
-                        throw new Error('Failed to delete entry');
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const commentCount = allNotes.filter(
+                      (note: Note) => Array.isArray(note.reference_entry_ids) && note.reference_entry_ids.includes(entry.id)
+                    ).length;
+                    return commentCount > 0 ? (
+                      <span className="bg-slate-200 text-slate-700 text-xs font-semibold rounded-full px-2 py-0.5 border border-slate-300 select-none">
+                        💬 {commentCount}
+                      </span>
+                    ) : null;
+                  })()}
+                  <button
+                    type="button"
+                    aria-label="Delete entry"
+                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!window.confirm('Are you sure you want to delete this entry?')) {
+                        return;
                       }
-                      await fetchEntries({ userInitiated: true });
-                    } catch (err) {
-                      console.error('Error deleting entry:', err);
-                    }
-                  }}
-                >
-                  <Trash size={18} strokeWidth={2} />
-                </button>
+                      try {
+                        const res = await fetch(`/api/entries/${entry.id}`, {
+                          method: 'DELETE',
+                        });
+                        if (!res.ok) {
+                          throw new Error('Failed to delete entry');
+                        }
+                        await fetchEntries({ userInitiated: true });
+                      } catch (err) {
+                        console.error('Error deleting entry:', err);
+                      }
+                    }}
+                  >
+                    <Trash size={18} strokeWidth={2} />
+                  </button>
+                </div>
               </div>
             </div>
           </Card>
