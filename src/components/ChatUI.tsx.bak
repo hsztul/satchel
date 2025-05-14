@@ -36,7 +36,7 @@ type MessagePart = { type: 'text'; text: string } | { type: 'reasoning'; details
 export default function ChatUI() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  // Removed unused persistedMessages state to fix lint error.
+  const [persistedMessages, setPersistedMessages] = useState<any[]>([]);
   const [savingMessage, setSavingMessage] = useState(false);
 
   const {
@@ -54,8 +54,7 @@ export default function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // State for storing all available chat sessions
-  type ChatSession = { id: string; title: string; created_at: string };
-const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [chatSessions, setChatSessions] = useState<Array<{id: string, title: string, created_at: string}>>([]);
   
   // Fetch all chat sessions
   const fetchChatSessions = async () => {
@@ -74,8 +73,37 @@ const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
     }
   };
 
+  // Initialize by loading the most recent chat or creating a new one
+  useEffect(() => {
+    const initializeChat = async () => {
+      try {
+        setLoading(true);
+        // Get all sessions
+        const sessions = await fetchChatSessions();
+        
+        let activeSession;
+        // Use the most recent session if available
+        if (sessions && sessions.length > 0) {
+          activeSession = sessions[0];
+        } else {
+          // Create a default session if none exists
+          activeSession = await createChatSession("New Chat");
+          await fetchChatSessions(); // Refresh the sessions list
+        }
+        
+        // Set the active chat and load its messages
+        await loadChatMessages(activeSession.id);
+      } catch (error) {
+        console.error("Failed to initialize chat:", error);
+        setLoading(false);
+      }
+    };
+    
+    initializeChat();
+  }, []);
+  
   // Load messages for a specific chat session
-const loadChatMessages = async (chatId: string) => {
+  const loadChatMessages = async (chatId: string) => {
     // Prevent overlapping API calls
     if (isFetchingRef.current) return;
     
@@ -88,7 +116,7 @@ const loadChatMessages = async (chatId: string) => {
       setActiveChatId(chatId);
       
       // Use cached messages if available
-      let msgs: {id: string; sender: string; content: string; created_at?: string}[] = [];
+      let msgs: Array<{id: string; sender: string; content: string; created_at?: string}> = [];
       if (cachedMessagesMap[chatId]) {
         msgs = cachedMessagesMap[chatId];
         console.log('Using cached messages for', chatId);
@@ -103,13 +131,33 @@ const loadChatMessages = async (chatId: string) => {
         }));
       }
       
+      setPersistedMessages(msgs);
+      
       // Convert to the format expected by useChat
       setMessages(
-        msgs.map((m: { id: string; sender: string; content: string }) => ({
-          id: m.id,
-          role: m.sender as 'user' | 'assistant' | 'system' | 'data',
-          content: m.content
-        }))
+        msgs.map((m: any) => {
+          let content = m.content;
+          // Handle potential non-string content
+          if (Array.isArray(content)) {
+            content = content.join("");
+          } else if (typeof content === "object" && content !== null) {
+            content = Object.values(content).join("");
+          } else if (typeof content === "string") {
+            try {
+              const parsed = JSON.parse(content);
+              if (Array.isArray(parsed)) {
+                content = parsed.join("");
+              }
+            } catch {
+              // Not JSON, leave as is
+            }
+          }
+          return {
+            id: m.id,
+            role: m.sender,
+            content
+          };
+        })
       );
       setLoading(false);
     } catch (error) {
@@ -149,8 +197,7 @@ const loadChatMessages = async (chatId: string) => {
   const isFetchingRef = useRef(false);
 
   // Cache messages to reduce repeated fetches
-  type Message = { id: string; sender: string; content: string; created_at?: string };
-const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Message[]>>({});
+  const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, any[]>>({});
 
   // Save completed assistant messages - avoiding excessive fetching
   useEffect(() => {
@@ -183,7 +230,7 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
             }
 
             const assistantMessages = existingMessages.filter(
-              (m: Message) => m.sender === "assistant" && m.content === lastMessage.content
+              (m: any) => m.sender === "assistant" && m.content === lastMessage.content
             );
             
             // Only save if this exact message doesn't exist in the database
@@ -196,14 +243,14 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
               setCachedMessagesMap(prev => ({
                 ...prev,
                 [activeChatId]: [
-                  ...prev[activeChatId] || [],
-                  { id: String(Date.now()), sender: "assistant", content: lastMessage.content }
+                  ...prev[activeChatId] || [], 
+                  { id: Date.now(), sender: "assistant", content: lastMessage.content }
                 ]
               }));
 
               // --- Update chat session title based on first assistant response ---
               // Only update if this is the first assistant message in the session
-              if ((existingMessages as { sender: string }[]).filter((m) => m.sender === "assistant").length === 0) {
+              if (existingMessages.filter((m: any) => m.sender === "assistant").length === 0) {
                 // Extract a short title from the assistant's response (first 6 words)
                 const words = lastMessage.content.split(" ").filter(Boolean);
                 const title = words.slice(0, 6).join(" ") + (words.length > 6 ? "..." : "");
@@ -230,7 +277,7 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
         })();
       }
     }
-  }, [activeChatId, status, messages, savedContentHashes, cachedMessagesMap, savingMessage]);
+  }, [activeChatId, status, messages, savedContentHashes]);
 
   // Handle form submission
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -245,8 +292,8 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
       try {
         // Check if this exact message already exists in the database
         const existingMessages = await fetchMessages(activeChatId);
-        const duplicateUserMessages = (existingMessages as { sender: string; content: string }[]).filter(
-          (m) => m.sender === "user" && m.content === userMessage
+        const duplicateUserMessages = existingMessages.filter(
+          (m: any) => m.sender === "user" && m.content === userMessage
         );
         
         // Only save if this exact message doesn't exist in the database
@@ -259,38 +306,204 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
         console.error("Failed to save user message:", err);
       }
     }
+    return {
+      id: m.id,
+      role: m.sender,
+      content
+    };
+  })
+);
+setLoading(false);
+} catch (error) {
+  console.error(`Failed to load messages for chat ${chatId}:`, error);
+  setLoading(false);
+} finally {
+  isFetchingRef.current = false;
+}
+};
 
-    // Clear input immediately
-    setInput(""); 
+// Create a new chat session
+const handleCreateNewChat = async () => {
+  try {
+    const session = await createChatSession("New Chat");
+    await loadChatMessages(session.id); // Load the new empty chat
+    return session.id;
+  } catch (error) {
+    console.error("Failed to create new chat:", error);
+    return null;
+  }
+};
+
+// Auto-scroll to bottom when messages update
+useEffect(() => {
+  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages]);
+
+// Keep track of which message contents we've already saved to prevent duplicates
+const [savedContentHashes, setSavedContentHashes] = useState<Set<string>>(new Set());
+  
+// Helper function to create a content hash - helps us identify duplicate messages
+const hashContent = (role: string, content: string): string => {
+  return `${role}:${content.substring(0, 50)}`; // First 50 chars is enough for uniqueness
+};
+
+// Flag to prevent overlapping API calls
+const isFetchingRef = useRef(false);
+
+// Cache messages to reduce repeated fetches
+const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, any[]>>({});
+
+// Save completed assistant messages - avoiding excessive fetching
+useEffect(() => {
+  // Only run if we have a session and are not already saving
+  if (!activeChatId || savingMessage || status !== "ready" || messages.length === 0 || isFetchingRef.current) return;
+  
+  // Check if the last message is from the assistant and needs to be saved
+  const lastMessage = messages[messages.length - 1];
+  if (lastMessage?.role === "assistant") {
+    // Create a hash of this message to check if we've already saved it
+    const contentHash = hashContent("assistant", lastMessage.content);
     
-    // Then send it to the AI using the Vercel AI SDK
-    // This will automatically handle the streaming response
-    append({ role: "user", content: userMessage });
+    // Only save if we haven't already saved this exact content
+    if (!savedContentHashes.has(contentHash)) {
+      // Save the complete message to the database
+      (async () => {
+        setSavingMessage(true);
+        isFetchingRef.current = true;
+        try {
+          // Use cached messages if available, otherwise fetch
+          let existingMessages = cachedMessagesMap[activeChatId] || [];
+          
+          // Check if we need to fetch from DB (only fetch once)
+          if (!cachedMessagesMap[activeChatId]) {
+            existingMessages = await fetchMessages(activeChatId);
+            setCachedMessagesMap(prev => ({
+              ...prev,
+              [activeChatId]: existingMessages
+            }));
+          }
+
+          const assistantMessages = existingMessages.filter(
+            (m: any) => m.sender === "assistant" && m.content === lastMessage.content
+          );
+          
+          // Only save if this exact message doesn't exist in the database
+          if (assistantMessages.length === 0) {
+            await saveMessage(activeChatId, "assistant", lastMessage.content);
+            // Mark this content as saved
+            setSavedContentHashes(prev => new Set(prev).add(contentHash));
+
+            // Update cached messages
+            setCachedMessagesMap(prev => ({
+              ...prev,
+              [activeChatId]: [
+                ...prev[activeChatId] || [], 
+                { id: Date.now(), sender: "assistant", content: lastMessage.content }
+              ]
+            }));
+
+            // --- Update chat session title based on first assistant response ---
+            // Only update if this is the first assistant message in the session
+            if (existingMessages.filter((m: any) => m.sender === "assistant").length === 0) {
+              // Extract a short title from the assistant's response (first 6 words)
+              const words = lastMessage.content.split(" ").filter(Boolean);
+              const title = words.slice(0, 6).join(" ") + (words.length > 6 ? "..." : "");
+              try {
+                // Update the title in Supabase
+                await fetch("/api/chat/histories/update-title", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: activeChatId, title })
+                });
+                // Refresh chat sessions from backend to ensure UI is up-to-date
+                await fetchChatSessions();
+              } catch (err) {
+                console.error("Failed to update chat session title:", err);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Failed to save assistant message:", err);
+        } finally {
+          setSavingMessage(false);
+          isFetchingRef.current = false;
+        }
+      })();
+    }
+  }
+}, [activeChatId, status, messages, savedContentHashes]);
+
+// Handle form submission
+async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  if (!activeChatId || !input.trim() || status !== "ready") return;
+
+  const userMessage = input.trim();
+  const userContentHash = hashContent("user", userMessage);
+  
+  // First save the user message to the database (if not already saved)
+  if (!savedContentHashes.has(userContentHash)) {
+    try {
+      // Check if this exact message already exists in the database
+      const existingMessages = await fetchMessages(activeChatId);
+      const duplicateUserMessages = existingMessages.filter(
+        (m: any) => m.sender === "user" && m.content === userMessage
+      );
+      
+      // Only save if this exact message doesn't exist in the database
+      if (duplicateUserMessages.length === 0) {
+        await saveMessage(activeChatId, "user", userMessage);
+        // Mark this content as saved
+        setSavedContentHashes(prev => new Set(prev).add(userContentHash));
+      }
+    } catch (err) {
+      console.error("Failed to save user message:", err);
+    }
   }
 
+  // Clear input immediately
+  setInput(""); 
+  
+  // Then send it to the AI using the Vercel AI SDK
   return (
-    <div className="fixed inset-x-0 top-16 bottom-0 flex w-full h-[calc(100vh-4rem)] bg-gray-50 z-40 overflow-hidden">
-      {/* Chat History Sidebar */}
-      <aside className="hidden md:flex h-full w-64 flex-shrink-0 border-r bg-white">
-        <div className="flex flex-col h-full">
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            <ChatHistorySidebar 
-              activeChatId={activeChatId}
-              onSelectChat={loadChatMessages}
-              onCreateChat={handleCreateNewChat}
-            />
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Chat Area */}
-      <section className="flex-1 flex flex-col h-full min-w-0">
-        {/* Mobile chat selector */}
-        <div className="md:hidden border-b border-gray-200 p-2 flex items-center justify-between bg-white z-10">
-          <select 
-            className="text-sm rounded-md border-gray-300 py-1 pl-2 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={activeChatId || ''}
-            onChange={(e) => {
+    <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden">
+      {/* Mobile chat selector */}
+      <div className="md:hidden border-b border-gray-200 p-2 flex items-center justify-between">
+        <select 
+          className="text-sm rounded-md border-gray-300 py-1 pl-2 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          value={activeChatId || ''}
+          onChange={(e) => {
+            if (e.target.value === 'new') {
+              handleCreateNewChat();
+            } else if (e.target.value) {
+              loadChatMessages(e.target.value);
+            }
+          }}
+          disabled={loading}
+        >
+          <option value="" disabled>Select chat</option>
+          <optgroup label="Chat History">
+            {chatSessions.map(session => (
+              <option key={session.id} value={session.id}>
+                {session.title || 'Untitled Chat'}
+              </option>
+            ))}
+            <option value="new">+ New Chat</option>
+          </optgroup>
+        </select>
+        <button
+          onClick={() => handleCreateNewChat()}
+          className="p-1 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+          aria-label="New Chat"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+      </div>
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-pulse text-blue-500">Loading...</div>
               if (e.target.value === 'new') {
                 handleCreateNewChat();
               } else if (e.target.value) {
@@ -325,7 +538,7 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
           </div>
         ) : (
           <>
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 bg-white">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 && (
                 <div className="text-gray-400 text-center">No messages yet.</div>
               )}
@@ -394,7 +607,7 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
             {/* Input form */}
             <form
               onSubmit={handleSubmit}
-              className="flex items-center border-t p-2 gap-2 bg-white"
+              className="flex items-center border-t p-2 gap-2"
               autoComplete="off"
             >
               <input
@@ -416,7 +629,7 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
             </form>
           </>
         )}
-      </section>
+      </div>
     </div>
   );
 }

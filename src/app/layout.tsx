@@ -31,7 +31,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <header className="w-full border-b px-6 py-3 bg-white">
+        <header className="fixed top-0 left-0 w-full z-50 border-b px-6 py-3 bg-white">
   <div className="max-w-2xl mx-auto flex items-center justify-between">
     <Link href="/" className="font-bold text-xl tracking-tight text-blue-700 hover:text-blue-900 transition-colors">
       Satchel
@@ -40,7 +40,9 @@ export default function RootLayout({
   </div>
 </header>
         <Toaster />
-        {children}
+        <main className="pt-16">{/* Adjust pt-16 if header height changes */}
+          {children}
+        </main>
       </body>
     </html>
   );

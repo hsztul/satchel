@@ -225,5 +225,25 @@ Reference: PRD Section 5.4.2.
   - Display linked notes below the note creation area
   - Update entry feed to properly display note entries
 
-## Phase 12: User Account Management and Authentication with Clerk
+## Phase 12: ChatUI Improvements
 
+### Save Chat History
+- [x] **Action:** Implement chat history saving
+  - Add chat history to Supabase as a new table
+  - Add chat history to chat UI
+
+### Save a chat message as a new note entry
+- [ ] **Action:** Implement chat message saving as note entry
+   - Also include the previous message in the new entry metadata
+   - 
+
+### Chat Session Management
+- [x] **Action:** Implement chat session management
+   - Create/use a ChatHistorySidebar component for listing/selecting chat sessions
+   - Update main ChatUI to use activeChatId and fetch messages accordingly
+
+
+
+## Future Features
+
+### User Account Management and Authentication with Clerk
