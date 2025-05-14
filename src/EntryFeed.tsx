@@ -35,7 +35,11 @@ interface Note {
 export default function EntryFeed() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [hasMore, setHasMore] = useState(true);
   const [entryType, setEntryType] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [sortBy, setSortBy] = useState<string>("created_at");
@@ -52,10 +56,13 @@ export default function EntryFeed() {
   const fetchingRef = React.useRef(false);
 
   // Fetch entries (single fetch)
-  const fetchEntries = React.useCallback((opts?: { userInitiated?: boolean }) => {
+  const fetchEntries = React.useCallback((opts?: { userInitiated?: boolean, reset?: boolean, pageOverride?: number, pageSizeOverride?: number }) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
-    if (opts?.userInitiated) setLoading(true);
+    if (opts?.userInitiated && (opts?.reset || !opts)) setLoading(true);
+    if (opts && !opts.reset && opts.userInitiated) setLoadingMore(true);
+    const actualPage = opts?.pageOverride ?? page;
+    const actualPageSize = opts?.pageSizeOverride ?? pageSize;
     const params = new URLSearchParams({
       ...(entryType ? { entryType } : {}),
       ...(status ? { status } : {}),
@@ -63,28 +70,35 @@ export default function EntryFeed() {
       sortBy,
       sortOrder,
       ...(searchTerm ? { searchTerm } : {}),
-      page: "1",
-      pageSize: "10",
+      page: String(actualPage),
+      pageSize: String(actualPageSize),
     });
     fetch(`/api/entries?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
-        setEntries(data.data || []);
+        if (opts && !opts.reset && actualPage > 1) {
+          setEntries((prev) => [...prev, ...(data.data || [])]);
+        } else {
+          setEntries(data.data || []);
+        }
+        setHasMore(data.pagination && data.pagination.totalPages > actualPage);
         setError(null);
       })
       .catch(() => {
         setError("Failed to load entries");
       })
       .finally(() => {
-        if (opts?.userInitiated) setLoading(false);
+        if (opts?.userInitiated && (opts?.reset || !opts)) setLoading(false);
+        if (opts && !opts.reset && opts.userInitiated) setLoadingMore(false);
         fetchingRef.current = false;
       });
-  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustries]);
+  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustries, page, pageSize]);
 
   // Fetch on mount and whenever filters change
   useEffect(() => {
-    fetchEntries({ userInitiated: true });
-  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustries, fetchEntries]);
+    setPage(1);
+    fetchEntries({ userInitiated: true, reset: true, pageOverride: 1 });
+  }, [entryType, status, sortBy, sortOrder, searchTerm, selectedIndustries, pageSize, fetchEntries]);
 
   // Fetch all industries on mount
   useEffect(() => {
@@ -185,6 +199,20 @@ export default function EntryFeed() {
     <div>
       {/* Filter/sort/search controls */}
       <div className="mb-4">
+        <div className="flex items-center justify-end mb-2 gap-2">
+          <label htmlFor="page-size" className="text-xs text-slate-600 mr-1">Page size:</label>
+          <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
+            <SelectTrigger id="page-size" className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <Input
           className="w-full mb-2"
           type="search"
@@ -297,17 +325,11 @@ export default function EntryFeed() {
         </div>
       )}
       {/* Entry List */}
-      {!loading && !error && entries
-        .filter((entry: Entry) => {
-          // Hide notes with reference_entry_ids (i.e., comments/linked notes)
-          if (entry.entry_type === 'note' && Array.isArray(entry.reference_entry_ids) && entry.reference_entry_ids.length > 0) {
-            return false;
-          }
-          if (selectedIndustries.length === 0) return true;
-          const industries = entry.industries || [];
-          return selectedIndustries.some(selected => industries.includes(selected));
-        })
-        .map((entry) => (
+      {!loading && !error && Array.from(new Map(
+        entries
+          .filter(e => !(e.entry_type === 'note' && Array.isArray(e.reference_entry_ids) && e.reference_entry_ids.length > 0))
+          .map(e => [e.id, e])
+      ).values()).map((entry) => (
         <Link key={entry.id} href={`/entry/${entry.id}`} className="block mb-6">
           <Card className="p-4 hover:shadow-md transition cursor-pointer relative">
 
@@ -391,6 +413,22 @@ export default function EntryFeed() {
           </Card>
         </Link>
       ))}
+      {/* Load More button */}
+      {!loading && !error && hasMore && (
+        <div className="flex justify-center my-6">
+          <button
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded text-sm font-medium text-slate-700 flex items-center gap-2 disabled:opacity-60"
+            onClick={() => {
+              setPage(prev => prev + 1);
+              fetchEntries({ userInitiated: true, pageOverride: page + 1 });
+            }}
+            disabled={loadingMore}
+            aria-label="Load more entries"
+          >
+            {loadingMore ? <Spinner size={18} /> : 'Load More'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

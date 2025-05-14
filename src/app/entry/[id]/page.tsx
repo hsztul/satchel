@@ -102,7 +102,7 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
       }
     };
     void fetchEntry();
-  }, [entryId, entry]);
+  }, [entryId]);
 
   // Separate effect for polling
   useEffect(() => {
@@ -117,23 +117,29 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
     ];
     const shouldPoll = processingStatuses.includes(entry.status);
     if (!shouldPoll) return;
-    const pollInterval = setInterval(async () => {
+    let pollInterval: NodeJS.Timeout | null = null;
+    pollInterval = setInterval(async () => {
       try {
         const res = await fetch(`/api/entries/${entryId}`);
         const data = await res.json();
         if (!data.error) {
-          setEntry(data);
+          if (data.status !== entry.status) {
+            // Only update entry if status actually changed
+            setEntry(data);
+          }
           // Stop polling if status is no longer processing
           if (!processingStatuses.includes(data.status)) {
-            clearInterval(pollInterval);
+            if (pollInterval) clearInterval(pollInterval);
           }
         }
       } catch (err) {
         console.error('Error polling entry:', err);
       }
-    }, 2000); // Poll every 2 seconds
-    return () => clearInterval(pollInterval);
-  }, [entryId, entry?.status]); // Only re-run when status changes
+    }, 2000);
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [entryId, entry?.status]);
 
   useEffect(() => {
     if (!entry?.llm_analysis?.perplexity_research?.full_perplexity_responses) {
@@ -171,13 +177,15 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
           <div className="">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-slate-800 w-full break-words mb-2">{entry.title || "Untitled"}</h2>
+                <h2 className="text-2xl font-bold text-slate-800 w-full break-words mb-2 whitespace-pre-line">{entry.title || "Untitled"}</h2>
                 {entry.source_url && (
                   <a
                     href={entry.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="text-blue-600 hover:underline text-sm truncate max-w-xs inline-block align-middle"
+                    style={{ verticalAlign: 'middle' }}
+                    title={entry.source_url}
                   >
                     {entry.source_url}
                   </a>
