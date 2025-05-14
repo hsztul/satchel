@@ -3,6 +3,29 @@ import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { ARTICLE_SUMMARY_PROMPT, COMPANY_SUMMARY_PROMPT } from './prompts';
 
+const NOTE_TITLE_PROMPT = `You are an expert at creating concise, descriptive titles. Given the following note content, generate a short, clear title (max 12 words) that summarizes the main idea. Do not use generic words like 'Note' or 'Entry'.
+
+Note Content:
+"""
+{{note}}
+"""
+
+Title:`;
+
+export async function generateNoteTitle(note: string): Promise<string> {
+  const prompt = NOTE_TITLE_PROMPT.replace('{{note}}', note);
+  const { generateText } = await import('ai');
+  const { openai } = await import('@ai-sdk/openai');
+  const result = await generateText({
+    model: openai('gpt-4o'),
+    prompt,
+    maxTokens: 24,
+    temperature: 0.4,
+  });
+  return (result.text || '').trim().replace(/^"|"$/g, '');
+}
+
+
 /**
  * Injects variables into a prompt template.
  * @param {string} template - The prompt template

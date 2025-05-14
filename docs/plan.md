@@ -207,12 +207,12 @@ Reference: PRD Section 5.4.2.
 
 ## Phase 11: Note Entry Type Support
 ### Database Schema Updates
-- [ ] **Action:** Add reference_entry_ids array column to entries table
+- [x] **Action:** Add reference_entry_ids array column to entries table
   - Modify entries table to support array of entry IDs for note references
   - Enable linking notes to other entries ("commenting" functionality)
 
 ### Note Creation from Dashboard
-- [ ] **Action:** Update entry input form
+- [x] **Action:** Update entry input form
   - Add 'Note' option to entry type dropdown
   - Convert URL input to text area when Note type is selected
   - Implement auto-title generation from note text
@@ -224,3 +224,6 @@ Reference: PRD Section 5.4.2.
   - Automatically include current entry ID in reference_entry_ids
   - Display linked notes below the note creation area
   - Update entry feed to properly display note entries
+
+## Phase 12: User Account Management and Authentication with Clerk
+

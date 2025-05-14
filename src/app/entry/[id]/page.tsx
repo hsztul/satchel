@@ -2,12 +2,25 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-
-// Optional: Add syntax highlighting
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { nord } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MoreVertical, RefreshCcw, Trash } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { use as usePromise } from "react";
+import NoteEntryView from "./NoteEntryView";
+import ArticleEntryView from "./ArticleEntryView";
+import CompanyEntryView from "./CompanyEntryView";
 
-// Correctly typed custom code renderer for ReactMarkdown
 const components: Components = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   code({ inline, className, children, ...props }: any) {
@@ -39,21 +52,7 @@ function cleanMarkdown(md: string): string {
   return md.replace(/^```[a-zA-Z0-9]*\n?/, '').replace(/```\s*$/, '').trim();
 }
 
-
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MoreVertical, RefreshCcw, Trash } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-import { use as usePromise } from "react";
+import NoteComments from "./NoteComments";
 
 export default function EntryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = usePromise(params);
@@ -89,7 +88,6 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     if (!entryId) return;
     setLoading(true);
-
     // Initial fetch
     const fetchEntry = async () => {
       try {
@@ -104,17 +102,21 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
       }
     };
     void fetchEntry();
-  }, [entryId]);
+  }, [entryId, entry]);
 
   // Separate effect for polling
   useEffect(() => {
     if (!entryId || !entry) return;
-
-    const processingStatuses = ["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"];
+    const processingStatuses = [
+      "pending",
+      "scraping_website",
+      "processing_scraped_content",
+      "researching_external",
+      "processing_summarized",
+      "processing_embeddings"
+    ];
     const shouldPoll = processingStatuses.includes(entry.status);
-
     if (!shouldPoll) return;
-
     const pollInterval = setInterval(async () => {
       try {
         const res = await fetch(`/api/entries/${entryId}`);
@@ -130,7 +132,6 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
         console.error('Error polling entry:', err);
       }
     }, 2000); // Poll every 2 seconds
-
     return () => clearInterval(pollInterval);
   }, [entryId, entry?.status]); // Only re-run when status changes
 
@@ -159,8 +160,15 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
         <div className="text-center text-slate-500 py-8">Entry not found.</div>
       )}
       {!loading && !error && entry && (
-        <Card className="p-6">
-          <div className="mb-4">
+        <Card className="p-6 relative">
+          {["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized", "processing_embeddings"].includes(entry.status) && (
+            <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center z-10 rounded">
+              <Spinner size={32} className="mb-2" />
+              <span className="text-slate-500 text-sm font-medium">Processing…</span>
+              <span className="text-xs text-slate-400 mt-1">{entry.status.replace(/_/g, ' ')}</span>
+            </div>
+          )}
+          <div className="">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-slate-800 w-full break-words mb-2">{entry.title || "Untitled"}</h2>
@@ -237,7 +245,7 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
               <Badge variant="outline" className="text-xs capitalize">{entry.entry_type}</Badge>
               <Badge variant="secondary" className="text-xs capitalize flex items-center gap-1.5">
                 {entry.status}
-                {["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"].includes(entry.status) && (
+                {["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized", "processing_embeddings"].includes(entry.status) && (
                   <Spinner size={12} />
                 )}
               </Badge>
@@ -248,7 +256,7 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
               ))}
             </div>
           </div>
-          <div className="text-xs text-slate-500 mb-4">
+          <div className="text-xs text-slate-500">
             Created: {entry.created_at ? new Date(entry.created_at).toLocaleString() : 'N/A'} | Updated: {entry.updated_at ? new Date(entry.updated_at).toLocaleString() : 'N/A'}
           </div>
           {entry.summary && (
@@ -263,9 +271,6 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
             <div className="mb-4">
               <h3 className="font-semibold mb-1">Perplexity Research</h3>
               <div className="prose prose-sm max-w-full bg-indigo-50 rounded p-3 border text-slate-800">
-                {/**
-                 * Use a correctly typed custom code renderer for ReactMarkdown
-                 */}
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={components}
@@ -322,15 +327,15 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
               )}
             </div>
           )}
+          {/* Entry type-specific content view */}
           {entry.cleaned_content && (
-            <details className="mb-4 group" tabIndex={0}>
-              <summary className="font-semibold mb-1 cursor-pointer select-none focus:outline-none group-open:mb-2">
-                Source Content <span className="ml-1 text-xs text-slate-500">(click to expand)</span>
-              </summary>
-              <pre className="bg-slate-50 rounded p-3 border text-xs overflow-x-auto text-slate-700 mt-2">
-                {typeof entry.cleaned_content === 'string' ? entry.cleaned_content : ''}
-              </pre>
-            </details>
+            entry.entry_type === 'note' ? (
+              <NoteEntryView cleaned_content={entry.cleaned_content} />
+            ) : entry.entry_type === 'company' ? (
+              <CompanyEntryView cleaned_content={entry.cleaned_content} />
+            ) : (
+              <ArticleEntryView cleaned_content={entry.cleaned_content} />
+            )
           )}
           {entry.metadata && (
             <details className="mb-4 group" tabIndex={0}>
@@ -342,11 +347,12 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
               </pre>
             </details>
           )}
-          <div className="text-xs text-slate-500 mt-6">
-            Entry ID: <span className="font-mono text-blue-700">{entry.id}</span>
-          </div>
         </Card>
       )}
+      <div className="max-w-2xl mx-auto mt-6">
+        <h2 className="text-lg font-semibold mb-2">Comments</h2>
+        <NoteComments entryId={entryId} />
+      </div>
     </div>
   );
 }

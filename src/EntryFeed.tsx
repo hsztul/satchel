@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 
 import { Trash } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import NoteEntryCard from "./NoteEntryCard";
 
 interface Entry {
   id: string;
@@ -21,7 +22,15 @@ interface Entry {
   created_at: string;
   summary?: string;
   industries?: string[];
+  cleaned_content?: string; // Added for note entries
+  reference_entry_ids?: string[];
 }
+
+interface Note {
+  id: string;
+  reference_entry_ids?: string[];
+}
+
 
 export default function EntryFeed() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -36,6 +45,7 @@ export default function EntryFeed() {
   const [allIndustries, setAllIndustries] = useState<string[]>([]);
 
   const [pollingActive, setPollingActive] = useState(true);
+  const [allNotes, setAllNotes] = useState<Note[]>([]);
   const pollingToastId = React.useRef<string | number | null>(null);
 
   // Track in-flight requests to avoid overlap
@@ -87,6 +97,17 @@ export default function EntryFeed() {
       })
       .catch(err => {
         console.error('Failed to fetch industries:', err);
+      });
+    // Fetch all notes for comment counts
+    fetch('/api/entries?entryType=note&pageSize=1000')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data.data)) {
+          setAllNotes(data.data);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch notes:', err);
       });
   }, []);
 
@@ -277,18 +298,39 @@ export default function EntryFeed() {
       )}
       {/* Entry List */}
       {!loading && !error && entries
-        .filter((entry) => {
+        .filter((entry: Entry) => {
+          // Hide notes with reference_entry_ids (i.e., comments/linked notes)
+          if (entry.entry_type === 'note' && Array.isArray(entry.reference_entry_ids) && entry.reference_entry_ids.length > 0) {
+            return false;
+          }
           if (selectedIndustries.length === 0) return true;
           const industries = entry.industries || [];
           return selectedIndustries.some(selected => industries.includes(selected));
         })
         .map((entry) => (
         <Link key={entry.id} href={`/entry/${entry.id}`} className="block mb-6">
-          <Card className="p-4 hover:shadow-md transition cursor-pointer">
+          <Card className="p-4 hover:shadow-md transition cursor-pointer relative">
+            {/* Comment count badge */}
+            {(() => {
+              const commentCount = allNotes.filter(
+                (note: Note) => Array.isArray(note.reference_entry_ids) && note.reference_entry_ids.includes(entry.id)
+              ).length;
+              return commentCount > 0 ? (
+                <span className="absolute top-3 right-3 bg-slate-200 text-slate-700 text-xs font-semibold rounded-full px-2 py-0.5 border border-slate-300 select-none">
+                  💬 {commentCount}
+                </span>
+              ) : null;
+            })()}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-lg text-slate-800 truncate">{entry.title || "Untitled"}</span>
-                {["pending", "scraping_website", "processing_scraped_content", "researching_external", "processing_summarized"].includes(entry.status) && (
+                {[
+                  "pending",
+                  "scraping_website",
+                  "processing_scraped_content",
+                  "researching_external",
+                  "processing_summarized"
+                ].includes(entry.status) && (
                   <Spinner size={18} />
                 )}
               </div>
@@ -306,7 +348,11 @@ export default function EntryFeed() {
                   </Badge>
                 )}
               </div>
-              {entry.summary && (
+              {/* Show note text for notes, summary for others */}
+              {entry.entry_type === 'note' && entry.cleaned_content && (
+                <NoteEntryCard cleaned_content={entry.cleaned_content} />
+              )}
+              {entry.entry_type !== 'note' && entry.summary && (
                 <p className="text-sm text-slate-600 mt-2">
                   {entry.summary}
                 </p>

@@ -3,18 +3,80 @@ import { supabase } from '@/lib/supabase';
 
 // Type for request body
 interface IngestEntryRequest {
-  entryType: 'article' | 'company';
-  url: string;
+  entryType: 'article' | 'company' | 'note';
+  url?: string;
+  note?: string;
+  reference_entry_ids?: string[];
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { entryType, url } = body as IngestEntryRequest;
+    const { entryType, url, note, reference_entry_ids } = body as IngestEntryRequest;
 
     // Validate request
-    if (!entryType || !['article', 'company'].includes(entryType) || !url || typeof url !== 'string') {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    if (!entryType || !['article', 'company', 'note'].includes(entryType)) {
+      return NextResponse.json({ error: 'Invalid entryType' }, { status: 400 });
+    }
+
+    if (entryType === 'note') {
+      if (!note || typeof note !== 'string' || !note.trim()) {
+        return NextResponse.json({ error: 'Note content is required' }, { status: 400 });
+      }
+      // Insert the note entry with initial status 'pending', no title yet
+      const { data, error } = await supabase
+        .from('entries')
+        .insert([
+          {
+            entry_type: 'note',
+            cleaned_content: note,
+            status: 'pending',
+            industries: [], // Ensure NOT NULL constraint is satisfied
+            reference_entry_ids: Array.isArray(reference_entry_ids) ? reference_entry_ids : [],
+          },
+        ])
+        .select('id');
+      if (error || !data || !data[0]?.id) {
+        return NextResponse.json({ error: 'Failed to insert note', details: error }, { status: 500 });
+      }
+      const entryId = data[0].id;
+
+      // --- Begin async processing for notes ---
+      (async () => {
+        try {
+          // 1. Generate title
+          const { generateNoteTitle } = await import('@/lib/aiAgent');
+          let autoTitle = '';
+          try {
+            autoTitle = await generateNoteTitle(note);
+          } catch {
+            autoTitle = note.length > 50 ? note.substring(0, 50) + '…' : note;
+          }
+          // 2. Set status to processing_embeddings and update title
+          await supabase.from('entries').update({ status: 'processing_embeddings', title: autoTitle }).eq('id', entryId);
+          // 3. Embed chunks
+          const { embedChunksAndStore } = await import('@/lib/embeddingAgent');
+          const embedResult = await embedChunksAndStore({ entryId, text: note });
+          if (embedResult.success) {
+            await supabase.from('entries').update({ status: 'complete' }).eq('id', entryId);
+          } else {
+            await supabase.from('entries').update({ status: 'error' }).eq('id', entryId);
+          }
+        } catch {
+          await supabase.from('entries').update({ status: 'error' }).eq('id', entryId);
+        }
+      })();
+
+      return NextResponse.json({
+        entryId,
+        status: 'pending',
+        message: 'Note created. Processing will continue asynchronously.'
+      }, { status: 202 });
+    }
+
+    // For article/company, require url
+    if (!url || typeof url !== 'string') {
+      return NextResponse.json({ error: 'URL is required for articles/companies' }, { status: 400 });
     }
 
     // Check if entry already exists
