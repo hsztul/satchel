@@ -199,20 +199,6 @@ export default function EntryFeed() {
     <div>
       {/* Filter/sort/search controls */}
       <div className="mb-4">
-        <div className="flex items-center justify-end mb-2 gap-2">
-          <label htmlFor="page-size" className="text-xs text-slate-600 mr-1">Page size:</label>
-          <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
-            <SelectTrigger id="page-size" className="w-20">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5</SelectItem>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
         <Input
           className="w-full mb-2"
           type="search"
@@ -225,6 +211,19 @@ export default function EntryFeed() {
             Filters & Sort <span className="ml-1 text-xs text-slate-500">(click to expand)</span>
           </summary>
           <div className="pt-3 flex flex-wrap gap-2 items-center">
+            {/* Page size buttons (replacing dropdown) */}
+            <span className="text-xs text-slate-600 mr-1">Page size:</span>
+            {[5, 10, 20, 50].map(size => (
+              <button
+                key={size}
+                type="button"
+                className={`px-2 py-1 rounded border text-xs font-medium mx-0.5 transition-colors focus:outline-none ${pageSize === size ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'}`}
+                onClick={() => { setPageSize(size); setPage(1); }}
+                aria-label={`Show ${size} entries per page`}
+              >
+                {size}
+              </button>
+            ))}
             <Select value={entryType} onValueChange={v => setEntryType(v === "all" ? undefined : v)}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Type" />
