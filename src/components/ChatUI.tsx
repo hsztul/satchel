@@ -34,6 +34,21 @@ type ReasoningDetail = { type: 'text'; text: string } | { type: string; [key: st
 type MessagePart = { type: 'text'; text: string } | { type: 'reasoning'; details: ReasoningDetail[] };
 
 export default function ChatUI() {
+  // Load the most recent chat session on mount
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const sessions = await fetchChatSessions();
+      if (sessions && sessions.length > 0) {
+        await loadChatMessages(sessions[0].id);
+      } else {
+        // If no sessions, create a new one and load it
+        const session = await createChatSession("New Chat");
+        await loadChatMessages(session.id);
+      }
+      setLoading(false);
+    })();
+  }, []);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Removed unused persistedMessages state to fix lint error.
