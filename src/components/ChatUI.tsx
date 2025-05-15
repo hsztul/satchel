@@ -363,11 +363,11 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                     className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`relative max-w-[80%] px-4 py-2 rounded-lg whitespace-pre-line text-sm shadow
-                        ${m.role === "user"
-                          ? "bg-blue-600 text-white self-end"
-                          : "bg-gray-100 text-gray-700 self-start"
-                      }`}
+                      className={`relative max-w-[80%] px-4 py-2 pb-10 rounded-lg whitespace-pre-line text-sm shadow
+  ${m.role === "user"
+    ? "bg-blue-600 text-white self-end"
+    : "bg-gray-100 text-gray-700 self-start"
+  }` }
                     >
                       {Array.isArray(m.parts)
                         ? (m.parts as MessagePart[]).map((part, idx) => {
@@ -376,60 +376,58 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                             return null;
                           })
                         : m.content}
-                      {showSave && (
-                        <>
-                          <button
-                            type="button"
-                            aria-label="Save as note"
-                            onClick={handleSave}
-                            className="absolute -top-2 -right-2 bg-white border border-gray-300 rounded-full shadow p-1 hover:bg-blue-100 transition"
-                          >
-                            <span role="img" aria-label="Save">💾</span>
-                          </button>
-                          {confirmOpenIdx === idx && (
-                            <ConfirmDialog
-                              open={true}
-                              title="Save message as note?"
-                              description="This will create a new note entry from this chat message."
-                              onConfirm={async () => {
-                                setConfirmOpenIdx(null);
-                                const toastId = toast.loading("Saving note...", { duration: 1500 });
-try {
-  const res = await fetch("/api/entries", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      cleaned_content: m.content,
-      metadata: {
-        previous_message: prevMessage ? prevMessage.content : null
-      }
-    })
-  });
-  toast.dismiss(toastId);
-  if (!res.ok) throw new Error("Failed to save");
-  toast.success("Saved as note!", { duration: 2500 });
-} catch {
-  toast.dismiss(toastId);
-  toast.error("Failed to save note", { duration: 3000 });
-}
 
-                              }}
-                              onCancel={() => setConfirmOpenIdx(null)}
-                            />
-                          )}
-                        </>
+                      {showSave && (
+                        <button
+                          type="button"
+                          aria-label="Save as note"
+                          onClick={handleSave}
+                          className="absolute bottom-2 right-2 mt-2 bg-white border border-gray-300 rounded-full shadow p-1 hover:bg-blue-100 transition"
+                        >
+                          <span role="img" aria-label="Save">💾</span>
+                        </button>
                       )}
                     </div>
+                    {confirmOpenIdx === idx && (
+                      <ConfirmDialog
+                        open={true}
+                        title="Save message as note?"
+                        description="This will create a new note entry from this chat message."
+                        onConfirm={async () => {
+                          setConfirmOpenIdx(null);
+                          const toastId = toast.loading("Saving note...", { duration: 1500 });
+                          try {
+                            const res = await fetch("/api/entries", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                cleaned_content: m.content,
+                                metadata: {
+                                  previous_message: prevMessage ? prevMessage.content : null
+                                }
+                              })
+                            });
+                            toast.dismiss(toastId);
+                            if (!res.ok) throw new Error("Failed to save");
+                            toast.success("Saved as note!", { duration: 2500 });
+                          } catch {
+                            toast.dismiss(toastId);
+                            toast.error("Failed to save note", { duration: 3000 });
+                          }
+                        }}
+                        onCancel={() => setConfirmOpenIdx(null)}
+                      />
+                    )}
                   </div>
                 );
               })}
               <Toaster />
               {/* Streaming indicator */}
-              {status === 'streaming' && messages.length > 0 && (
-                <div className="flex items-center justify-center py-2">
-                  <span className="text-blue-500 animate-pulse">Assistant is typing...</span>
-                </div>
-              )}
+               {status === 'streaming' && messages.length > 0 && (
+                 <div className="flex items-center justify-center py-2">
+                   <span className="text-blue-500 animate-pulse">Assistant is typing...</span>
+                 </div>
+               )}
               <div ref={messagesEndRef} />
             </div>
 
