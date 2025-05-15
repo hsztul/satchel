@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useChat } from "@ai-sdk/react";
 import ChatHistorySidebar from "./ChatHistorySidebar";
 
@@ -33,7 +34,13 @@ async function saveMessage(sessionId: string, sender: string, content: string) {
 type ReasoningDetail = { type: 'text'; text: string } | { type: string; [key: string]: unknown };
 type MessagePart = { type: 'text'; text: string } | { type: 'reasoning'; details: ReasoningDetail[] };
 
+import { Toaster } from "./ui/sonner";
+import { ConfirmDialog } from "./ConfirmDialog";
+
 export default function ChatUI() {
+  // State for confirmation dialog
+  const [confirmOpenIdx, setConfirmOpenIdx] = useState<number | null>(null);
+
   // Load the most recent chat session on mount
   useEffect(() => {
     (async () => {
@@ -231,13 +238,13 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                   });
                   // Refresh chat sessions from backend to ensure UI is up-to-date
                   await fetchChatSessions();
-                } catch (err) {
-                  console.error("Failed to update chat session title:", err);
+                } catch {
+                  console.error("Failed to update chat session title:");
                 }
               }
             }
-          } catch (err) {
-            console.error("Failed to save assistant message:", err);
+          } catch {
+            console.error("Failed to save assistant message:");
           } finally {
             setSavingMessage(false);
             isFetchingRef.current = false;
@@ -270,8 +277,8 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
           // Mark this content as saved
           setSavedContentHashes(prev => new Set(prev).add(userContentHash));
         }
-      } catch (err) {
-        console.error("Failed to save user message:", err);
+      } catch {
+        console.error("Failed to save user message:");
       }
     }
 
@@ -344,28 +351,79 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
               {messages.length === 0 && (
                 <div className="text-gray-400 text-center">No messages yet.</div>
               )}
-              {messages.map((m, idx) => (
-                <div
-                  key={m.id || idx}
-                  className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
-                >
+              {messages.map((m, idx) => {
+                const showSave = m.role === "user" || m.role === "assistant";
+                const prevMessage = idx > 0 ? messages[idx - 1] : null;
+                const handleSave = () => {
+                  setConfirmOpenIdx(idx);
+                };
+                return (
                   <div
-                    className={`max-w-[80%] px-4 py-2 rounded-lg whitespace-pre-line text-sm shadow
-                      ${m.role === "user"
-                        ? "bg-blue-600 text-white self-end"
-                        : "bg-gray-100 text-gray-700 self-start"
-                    }`}
+                    key={m.id || idx}
+                    className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
                   >
-                    {Array.isArray(m.parts)
-                      ? (m.parts as MessagePart[]).map((part, idx) => {
-                          if (part.type === 'text') return <span key={idx}>{part.text}</span>;
-                          if (part.type === 'reasoning') return <pre key={idx} className="bg-yellow-50 text-yellow-900 rounded p-2 my-1">{part.details?.map((d: ReasoningDetail) => d.type === 'text' ? d.text : '<redacted>').join(' ')}</pre>;
-                          return null;
-                        })
-                      : m.content}
+                    <div
+                      className={`relative max-w-[80%] px-4 py-2 rounded-lg whitespace-pre-line text-sm shadow
+                        ${m.role === "user"
+                          ? "bg-blue-600 text-white self-end"
+                          : "bg-gray-100 text-gray-700 self-start"
+                      }`}
+                    >
+                      {Array.isArray(m.parts)
+                        ? (m.parts as MessagePart[]).map((part, idx) => {
+                            if (part.type === 'text') return <span key={idx}>{part.text}</span>;
+                            if (part.type === 'reasoning') return <pre key={idx} className="bg-yellow-50 text-yellow-900 rounded p-2 my-1">{part.details?.map((d: ReasoningDetail) => d.type === 'text' ? d.text : '<redacted>').join(' ')}</pre>;
+                            return null;
+                          })
+                        : m.content}
+                      {showSave && (
+                        <>
+                          <button
+                            type="button"
+                            aria-label="Save as note"
+                            onClick={handleSave}
+                            className="absolute -top-2 -right-2 bg-white border border-gray-300 rounded-full shadow p-1 hover:bg-blue-100 transition"
+                          >
+                            <span role="img" aria-label="Save">💾</span>
+                          </button>
+                          {confirmOpenIdx === idx && (
+                            <ConfirmDialog
+                              open={true}
+                              title="Save message as note?"
+                              description="This will create a new note entry from this chat message."
+                              onConfirm={async () => {
+                                setConfirmOpenIdx(null);
+                                const toastId = toast.loading("Saving note...", { duration: 1500 });
+try {
+  const res = await fetch("/api/entries", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      cleaned_content: m.content,
+      metadata: {
+        previous_message: prevMessage ? prevMessage.content : null
+      }
+    })
+  });
+  toast.dismiss(toastId);
+  if (!res.ok) throw new Error("Failed to save");
+  toast.success("Saved as note!", { duration: 2500 });
+} catch {
+  toast.dismiss(toastId);
+  toast.error("Failed to save note", { duration: 3000 });
+}
+
+                              }}
+                              onCancel={() => setConfirmOpenIdx(null)}
+                            />
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+              <Toaster />
               {/* Streaming indicator */}
               {status === 'streaming' && messages.length > 0 && (
                 <div className="flex items-center justify-center py-2">

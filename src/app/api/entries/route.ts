@@ -48,3 +48,33 @@ export async function GET(req: NextRequest) {
     },
   });
 }
+
+// POST /api/entries: Create a new entry (note)
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { cleaned_content, metadata, ...rest } = body;
+    if (!cleaned_content) {
+      return NextResponse.json({ error: 'cleaned_content is required' }, { status: 400 });
+    }
+    // Default entry_type to 'note' if not provided
+    const entry_type = rest.entry_type || 'note';
+    const insertData = {
+      cleaned_content,
+      metadata,
+      entry_type,
+      ...rest
+    };
+    const { data, error } = await supabase
+      .from('entries')
+      .insert([insertData])
+      .select()
+      .single();
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json(data, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  }
+}

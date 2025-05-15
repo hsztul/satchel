@@ -233,9 +233,9 @@ Reference: PRD Section 5.4.2.
   - Add chat history to chat UI
 
 ### Save a chat message as a new note entry
-- [ ] **Action:** Implement chat message saving as note entry
+- [x] **Action:** Implement chat message saving as note entry
    - Also include the previous message in the new entry metadata
-   - 
+   - show a small save icon in the message bubble to save the message as a note
 
 ### Chat Session Management
 - [x] **Action:** Implement chat session management
