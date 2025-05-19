@@ -12,12 +12,17 @@ export async function runPerplexityResearch({ title, cleaned_content }: { title:
     const prompt = injectPromptVars(COMPANY_RESEARCH_PROMPT, { title, cleaned_content });
     console.log('[Perplexity] Prompt (first 400 chars):', prompt.slice(0, 400));
     const result = await generateText({
-      model: perplexity("sonar-deep-research"),
+      model: perplexity("sonar-pro"),
       prompt,
       temperature: 0.2,
     });
     console.log('[Perplexity] Result (first 400 chars):', result.text?.slice(0, 400));
-    return result.text;
+    // Per Vercel AI SDK docs, Perplexity returns sources as an array of URLs
+    return {
+      text: result.text,
+      citations: result.sources || [],
+    };
+
   } catch (err) {
     console.error('[Perplexity] Error in runPerplexityResearch:', err);
     throw err;

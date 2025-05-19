@@ -45,12 +45,49 @@ const components: Components = {
       </code>
     );
   },
+  h2: ({ node, ...props }) => (
+    <h2
+      className="text-lg font-semibold mt-4 mb-2"
+      // Using text-lg (1.125rem, typically 18px) and font-semibold (600)
+      // as an approximation for prose-sm h2 (1.25em of ~14px = 17.5px, font-weight 600)
+      // Adjust margins as needed to match prose styling if desired.
+      {...props}
+    />
+  ),
+  h1: ({ node, ...props }) => (
+    <h2
+      className="text-xl font-semibold mt-4 mb-2"
+      // Using text-lg (1.125rem, typically 18px) and font-semibold (600)
+      // as an approximation for prose-sm h2 (1.25em of ~14px = 17.5px, font-weight 600)
+      // Adjust margins as needed to match prose styling if desired.
+      {...props}
+    />
+  ),
 };
 
-function cleanMarkdown(md: string): string {
+function cleanMarkdown(md: unknown): string {
+  if (typeof md !== 'string') return '';
+
+  let content = md.trim(); // Trim leading/trailing whitespace first
+
+  // Remove any <think>...</think> tags that might be in the response
+  content = content.replace(/<think>[\s\S]*?<\/think>/g, "");
+
+  // Remove HTML entities
+  content = content
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+
   // Remove leading/trailing triple backticks and optional language hint
-  return md.replace(/^```[a-zA-Z0-9]*\n?/, '').replace(/```\s*$/, '').trim();
+  // Regex for start: ^```[language_chars]*[optional_whitespace]?[optional_newline]?
+  content = content.replace(/^```[a-zA-Z0-9]*\s*?\n?/, '');
+  // Regex for end: [optional_newline]?[optional_whitespace]?```[optional_whitespace]?$
+  content = content.replace(/\n?\s*?```\s*$/, '');
+
+  return content.trim(); // Trim again at the end to clean up any remnants
 }
+
 
 import NoteComments from "./NoteComments";
 
@@ -83,7 +120,6 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
   const [entry, setEntry] = useState<EntryType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [perplexityHtml, setPerplexityHtml] = useState<string>("");
 
   useEffect(() => {
     if (!entryId) return;
@@ -140,23 +176,6 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
       if (pollInterval) clearInterval(pollInterval);
     };
   }, [entryId, entry?.status]);
-
-  useEffect(() => {
-    if (!entry?.llm_analysis?.perplexity_research?.full_perplexity_responses) {
-      setPerplexityHtml("");
-      return;
-    }
-    // Remove any <think>...</think> tags that might be in the response
-    let content = entry.llm_analysis.perplexity_research.full_perplexity_responses.replace(/<think>[\s\S]*?<\/think>/g, "");
-    // Remove HTML entities
-    content = content
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&');
-    // Remove leading/trailing triple backticks and optional language hint
-    content = cleanMarkdown(content);
-    setPerplexityHtml(content);
-  }, [entry?.llm_analysis?.perplexity_research?.full_perplexity_responses]);
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4">
@@ -283,29 +302,33 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
                   remarkPlugins={[remarkGfm]}
                   components={components}
                 >
-                  {typeof perplexityHtml === 'string' ? perplexityHtml : ''}
+                  {cleanMarkdown(entry.llm_analysis.perplexity_research.full_perplexity_responses || '')}
                 </ReactMarkdown>
+                {Array.isArray(entry.llm_analysis.perplexity_research.citations) && entry.llm_analysis.perplexity_research.citations.length > 0 && (
+                  <div className="mt-3">
+                    <div className="font-medium text-slate-700 mb-1">References</div>
+                    <ol className="list-decimal list-inside space-y-1 text-xs text-slate-700">
+                      {entry.llm_analysis.perplexity_research.citations.map((citation: any, i: number) => {
+                        const url = typeof citation === 'string' ? citation : citation?.url;
+                        if (!url) return null;
+                        return (
+                          <li key={i} id={`ref-${i+1}`}>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline break-all"
+                              title={url}
+                            >
+                              {url}
+                            </a>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+                )}
               </div>
-              {entry.llm_analysis && entry.llm_analysis.perplexity_research && Array.isArray(entry.llm_analysis.perplexity_research.citations) && entry.llm_analysis.perplexity_research.citations.length > 0 && (
-                <div className="mt-3">
-                  <div className="font-medium text-slate-700 mb-1">References</div>
-                  <ol className="list-decimal list-inside space-y-1 text-xs text-slate-700">
-                    {entry.llm_analysis.perplexity_research.citations.map((url: string, i: number) => (
-                      <li key={i} id={`ref-${i+1}`}>
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline break-all"
-                          title={url}
-                        >
-                          {url}
-                        </a>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
             </div>
           )}
           {entry.llm_analysis && (Array.isArray(entry.llm_analysis.keyTakeaways) || Array.isArray(entry.llm_analysis.primaryConcepts)) && (

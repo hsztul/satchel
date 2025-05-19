@@ -37,7 +37,7 @@ export const COMPANY_RESEARCH_PROMPT = `Analyze the following company, titled "{
 5. Any notable risks, challenges, or emerging trends
 
 Format your response clearly with headings for each section. 
-Your response should be in properly formatted markdown. 
+Your response should be in properly formatted markdown only.
 
 Company Content:
 """

@@ -3,6 +3,7 @@ import { useRef, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useChat } from "@ai-sdk/react";
 import ChatHistorySidebar from "./ChatHistorySidebar";
+import Link from "next/link";
 
 // Utility: create a new chat session with a custom title
 async function createChatSession(title: string = "New Chat") {
@@ -33,6 +34,146 @@ async function saveMessage(sessionId: string, sender: string, content: string) {
 
 type ReasoningDetail = { type: 'text'; text: string } | { type: string; [key: string]: unknown };
 type MessagePart = { type: 'text'; text: string } | { type: 'reasoning'; details: ReasoningDetail[] };
+
+// Types for citations
+type Citation = {
+  id: number;
+  title: string;
+  url: string;
+  refCount: number;
+};
+
+// Utility to parse citations from text and create links
+function parseCitations(text: string): {
+  parsedText: React.ReactNode[];
+  citations: Citation[];
+} {
+  // Find all citation references in format [n] or [n, m]
+  const citationRegex = /\[(\d+(?:,\s*\d+)*)\]/g;
+  const parts: React.ReactNode[] = [];
+  const citationsMap: Record<number, Citation> = {};
+  
+  // Split text by citations
+  let lastIndex = 0;
+  let match;
+  
+  // Find citation list section at the end of the message
+  const sourceListRegex = /\n*Sources?:?\n((?:\[\d+\]:.*(?:\n|$))+)/i;
+  const sourceListMatch = text.match(sourceListRegex);
+  
+  let contentText = text;
+  let sourcesText = "";
+  
+  // Extract the sources section if it exists
+  if (sourceListMatch) {
+    contentText = text.substring(0, sourceListMatch.index);
+    sourcesText = sourceListMatch[1];
+    
+    // Parse sources
+    const sourceRegex = /\[(\d+)\]:\s*(.*?)\s*(?:\((https?:\/\/[^\)]+)\))?(?:\n|$)/g;
+    let sourceMatch;
+    while ((sourceMatch = sourceRegex.exec(sourcesText)) !== null) {
+      const id = parseInt(sourceMatch[1]);
+      const title = sourceMatch[2];
+      const url = sourceMatch[3] || `/entry/${id}`; // Default to local entry if URL not provided
+      
+      citationsMap[id] = {
+        id,
+        title,
+        url,
+        refCount: 0
+      };
+    }
+  }
+  
+  // Process inline citations
+  while ((match = citationRegex.exec(contentText)) !== null) {
+    // Add text before the citation
+    if (match.index > lastIndex) {
+      parts.push(contentText.substring(lastIndex, match.index));
+    }
+    
+    // Process the citation
+    const citationIds = match[1].split(/,\s*/).map(id => parseInt(id.trim()));
+    
+    // Create a citation link
+    parts.push(
+      <span key={match.index} className="inline-flex items-center gap-1">
+        <span className="text-xs text-blue-600 font-medium">
+          [
+          {citationIds.map((id, idx) => {
+            // Track citation usage
+            if (citationsMap[id]) {
+              citationsMap[id].refCount++;
+            } else {
+              // Create placeholder if citation not found in source list
+              citationsMap[id] = { id, title: `Source ${id}`, url: `/entry/${id}`, refCount: 1 };
+            }
+            
+            return (
+              <span key={id}>
+                {idx > 0 && ", "}
+                <Link 
+                  href={citationsMap[id].url} 
+                  target="_blank"
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {id}
+                </Link>
+              </span>
+            );
+          })}
+          ]
+        </span>
+      </span>
+    );
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < contentText.length) {
+    parts.push(contentText.substring(lastIndex));
+  }
+  
+  // Convert citations map to array
+  const citations = Object.values(citationsMap).filter(c => c.refCount > 0);
+  
+  return { parsedText: parts, citations };
+}
+
+// Component to render message with citations
+function MessageWithCitations({ content }: { content: string }) {
+  const { parsedText, citations } = parseCitations(content);
+  
+  return (
+    <div>
+      <div className="whitespace-pre-line">
+        {parsedText}
+      </div>
+      
+      {citations.length > 0 && (
+        <div className="mt-4 pt-2 border-t border-gray-200">
+          <h4 className="text-xs font-semibold text-gray-500 mb-1">Sources:</h4>
+          <ul className="text-xs space-y-1">
+            {citations.map(citation => (
+              <li key={citation.id} className="flex items-start">
+                <span className="font-medium text-gray-700 mr-1">[{citation.id}]</span>
+                <Link 
+                  href={citation.url} 
+                  target="_blank"
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {citation.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 import { Toaster } from "./ui/sonner";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -364,10 +505,10 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                   >
                     <div
                       className={`relative max-w-[80%] px-4 py-2 pb-10 rounded-lg whitespace-pre-line text-sm shadow
-  ${m.role === "user"
-    ? "bg-blue-600 text-white self-end"
-    : "bg-gray-100 text-gray-700 self-start"
-  }` }
+                        ${m.role === "user"
+                          ? "bg-blue-600 text-white self-end"
+                          : "bg-gray-100 text-gray-700 self-start"
+                        }`}
                     >
                       {Array.isArray(m.parts)
                         ? (m.parts as MessagePart[]).map((part, idx) => {
@@ -375,7 +516,9 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                             if (part.type === 'reasoning') return <pre key={idx} className="bg-yellow-50 text-yellow-900 rounded p-2 my-1">{part.details?.map((d: ReasoningDetail) => d.type === 'text' ? d.text : '<redacted>').join(' ')}</pre>;
                             return null;
                           })
-                        : m.content}
+                        : m.role === "assistant" 
+                          ? <MessageWithCitations content={m.content} />
+                          : m.content}
 
                       {showSave && (
                         <button

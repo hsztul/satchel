@@ -242,7 +242,20 @@ Reference: PRD Section 5.4.2.
    - Create/use a ChatHistorySidebar component for listing/selecting chat sessions
    - Update main ChatUI to use activeChatId and fetch messages accordingly
 
-
+### Adding Citations to RAG-based Chat
+- [x] **Action:** Implement citation functionality for RAG-based chat
+  - **Backend - Modify Data Retrieval & Context Preparation:**
+    - Retrieve source information (entry_id, title, source_url) with chunks
+    - Create source map with numerical identifiers for unique source documents
+    - Format context with clear source markers for the LLM
+  - **Backend - Update LLM Prompt:**
+    - Modify system prompt to instruct LLM to cite sources using numerical identifiers
+    - Request the LLM to list all cited sources at the end of responses
+  - **Frontend - Display Citations in UI:**
+    - Parse citations from LLM response text using regex
+    - Link citations to their sources (entry detail pages or original URLs)
+    - Optionally display a sources list at the bottom of AI messages
+  - **Reference:** PRD Section 8.4 (System Prompt modification)
 
 ## Future Features
 

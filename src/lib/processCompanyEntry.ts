@@ -37,13 +37,19 @@ export async function processCompanyEntry({ entryId, url }: { entryId: string, u
     try {
       await supabase.from('entries').update({ status: 'researching_external' }).eq('id', entryId);
       const { runPerplexityResearch } = await import('@/lib/perplexityAgent');
-      const perplexityResponse = await runPerplexityResearch({
+      const perplexityResult = await runPerplexityResearch({
         title: exaResult.title,
         cleaned_content: exaResult.cleaned_content,
       });
       const { data: existingEntry2 } = await supabase.from('entries').select('llm_analysis').eq('id', entryId).single();
       const prevLlmAnalysis2 = existingEntry2?.llm_analysis || {};
-      const newLlmAnalysis2 = { ...prevLlmAnalysis2, perplexity_research: { full_perplexity_responses: perplexityResponse } };
+      const newLlmAnalysis2 = {
+        ...prevLlmAnalysis2,
+        perplexity_research: {
+          full_perplexity_responses: perplexityResult.text,
+          citations: perplexityResult.citations || [],
+        },
+      };
       const { error: researchError } = await supabase.from('entries').update({
         llm_analysis: newLlmAnalysis2,
         status: 'processing_summarized',
