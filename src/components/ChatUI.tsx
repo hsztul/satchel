@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { useChat } from "@ai-sdk/react";
 import ChatHistorySidebar from "./ChatHistorySidebar";
@@ -233,7 +233,9 @@ export default function ChatUI() {
       }
       setLoading(false);
     })();
-  }, [loadChatMessages]);
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Removed unused persistedMessages state to fix lint error.
@@ -258,7 +260,7 @@ export default function ChatUI() {
 const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   
   // Fetch all chat sessions
-  const fetchChatSessions = async () => {
+  const fetchChatSessions = useCallback(async () => {
     try {
       const res = await fetch("/api/chat/histories");
       const sessions = await res.json();
@@ -272,7 +274,7 @@ const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
       console.error("Failed to fetch chat sessions:", error);
       return [];
     }
-  };
+  }, []);
 
   // Create a new chat session
   const handleCreateNewChat = async () => {
@@ -287,8 +289,18 @@ const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   };
 
   // Auto-scroll to bottom when messages update
+  // Improved auto-scroll: only scroll when a new message is added by assistant or user
+  const prevMessagesRef = useRef(messages);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const prevMessages = prevMessagesRef.current;
+    if (
+      messages.length > prevMessages.length &&
+      messages[messages.length - 1]?.role !== 'system' &&
+      messages[messages.length - 1]?.role !== 'data'
+    ) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevMessagesRef.current = messages;
   }, [messages]);
 
   // Keep track of which message contents we've already saved to prevent duplicates
@@ -368,8 +380,8 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ id: activeChatId, title })
                   });
-                  // Refresh chat sessions from backend to ensure UI is up-to-date
-                  await fetchChatSessions();
+                  // Update chatSessions state directly to avoid repeated fetches
+                  setChatSessions(prev => prev.map(s => s.id === activeChatId ? { ...s, title } : s));
                 } catch {
                   console.error("Failed to update chat session title:");
                 }
@@ -484,7 +496,7 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                 <div className="text-gray-400 text-center">No messages yet.</div>
               )}
               {messages.map((m, idx) => {
-                const showSave = m.role === "user" || m.role === "assistant";
+                const showSave = m.role === "assistant";
                 const prevMessage = idx > 0 ? messages[idx - 1] : null;
                 const handleSave = () => {
                   setConfirmOpenIdx(idx);
