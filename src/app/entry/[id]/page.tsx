@@ -45,21 +45,15 @@ const components: Components = {
       </code>
     );
   },
-  h2: ({ node, ...props }) => (
+  h1: (props) => (
     <h2
-      className="text-lg font-semibold mt-4 mb-2"
-      // Using text-lg (1.125rem, typically 18px) and font-semibold (600)
-      // as an approximation for prose-sm h2 (1.25em of ~14px = 17.5px, font-weight 600)
-      // Adjust margins as needed to match prose styling if desired.
+      className="text-xl font-semibold mt-4 mb-2"
       {...props}
     />
   ),
-  h1: ({ node, ...props }) => (
+  h2: (props) => (
     <h2
-      className="text-xl font-semibold mt-4 mb-2"
-      // Using text-lg (1.125rem, typically 18px) and font-semibold (600)
-      // as an approximation for prose-sm h2 (1.25em of ~14px = 17.5px, font-weight 600)
-      // Adjust margins as needed to match prose styling if desired.
+      className="text-lg font-semibold mt-4 mb-2"
       {...props}
     />
   ),
@@ -308,7 +302,7 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
                   <div className="mt-3">
                     <div className="font-medium text-slate-700 mb-1">References</div>
                     <ol className="list-decimal list-inside space-y-1 text-xs text-slate-700">
-                      {entry.llm_analysis.perplexity_research.citations.map((citation: any, i: number) => {
+                      {entry.llm_analysis.perplexity_research.citations.map((citation: string | { url: string }, i: number) => {
                         const url = typeof citation === 'string' ? citation : citation?.url;
                         if (!url) return null;
                         return (

@@ -182,6 +182,43 @@ export default function ChatUI() {
   // State for confirmation dialog
   const [confirmOpenIdx, setConfirmOpenIdx] = useState<number | null>(null);
 
+  // Load messages for a specific chat session
+  const loadChatMessages = async (chatId: string) => {
+    // Prevent overlapping API calls
+    if (isFetchingRef.current) return;
+    try {
+      isFetchingRef.current = true;
+      setLoading(true);
+      // Clear the current chat state
+      setMessages([]);
+      setActiveChatId(chatId);
+      // Use cached messages if available
+      let msgs: {id: string; sender: string; content: string; created_at?: string}[] = [];
+      if (cachedMessagesMap[chatId]) {
+        msgs = cachedMessagesMap[chatId];
+        console.log('Using cached messages for', chatId);
+      } else {
+        // Fetch from API
+        const res = await fetch(`/api/chat/histories/${chatId}/messages`);
+        msgs = await res.json();
+        setCachedMessagesMap(prev => ({ ...prev, [chatId]: msgs }));
+      }
+      setMessages(
+        msgs.map((m: { id: string; sender: string; content: string }) => ({
+          id: m.id,
+          role: m.sender as 'user' | 'assistant' | 'system' | 'data',
+          content: m.content
+        }))
+      );
+      setLoading(false);
+    } catch (error) {
+      console.error(`Failed to load messages for chat ${chatId}:`, error);
+      setLoading(false);
+    } finally {
+      isFetchingRef.current = false;
+    }
+  };
+
   // Load the most recent chat session on mount
   useEffect(() => {
     (async () => {
@@ -196,7 +233,7 @@ export default function ChatUI() {
       }
       setLoading(false);
     })();
-  }, []);
+  }, [loadChatMessages]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Removed unused persistedMessages state to fix lint error.
@@ -237,52 +274,6 @@ const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
     }
   };
 
-  // Load messages for a specific chat session
-const loadChatMessages = async (chatId: string) => {
-    // Prevent overlapping API calls
-    if (isFetchingRef.current) return;
-    
-    try {
-      isFetchingRef.current = true;
-      setLoading(true);
-      
-      // Clear the current chat state
-      setMessages([]);
-      setActiveChatId(chatId);
-      
-      // Use cached messages if available
-      let msgs: {id: string; sender: string; content: string; created_at?: string}[] = [];
-      if (cachedMessagesMap[chatId]) {
-        msgs = cachedMessagesMap[chatId];
-        console.log('Using cached messages for', chatId);
-      } else {
-        // Fetch messages for this chat
-        msgs = await fetchMessages(chatId);
-        
-        // Store in cache
-        setCachedMessagesMap(prev => ({
-          ...prev,
-          [chatId]: msgs
-        }));
-      }
-      
-      // Convert to the format expected by useChat
-      setMessages(
-        msgs.map((m: { id: string; sender: string; content: string }) => ({
-          id: m.id,
-          role: m.sender as 'user' | 'assistant' | 'system' | 'data',
-          content: m.content
-        }))
-      );
-      setLoading(false);
-    } catch (error) {
-      console.error(`Failed to load messages for chat ${chatId}:`, error);
-      setLoading(false);
-    } finally {
-      isFetchingRef.current = false;
-    }
-  };
-  
   // Create a new chat session
   const handleCreateNewChat = async () => {
     try {
