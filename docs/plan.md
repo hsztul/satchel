@@ -257,6 +257,39 @@ Reference: PRD Section 5.4.2.
     - Optionally display a sources list at the bottom of AI messages
   - **Reference:** PRD Section 8.4 (System Prompt modification)
 
+### Phase 13: Chat Augmentation with Web Search Tools (Perplexity Integration)
+
+1.  **Update API Keys & Configuration:**
+    - [ ]  **Action:** Ensure Perplexity API key is securely stored as an environment variable (if not already for company research).
+
+2.  **Modify `/api/chat` for Tool Calling (Vercel AI SDK):**
+    - [ ]   **Action:** Refactor the existing `/api/chat` Next.js API route to use the `streamText` (or `generateText`) function from the Vercel AI SDK, which supports tool calling.
+    - [ ]   **Define `search_web_perplexity` Tool:**
+        -   Inside the `tools` option of `streamText`, define a new tool named `search_web_perplexity`.
+        -   **Description:** Provide a clear description for the LLM on what the tool does (searches the web via Perplexity for current/external info) and when to use it (if RAG context is insufficient or outdated). (Refer to PRD Section 8.4 for base persona, and add tool usage instructions).
+        -   **Parameters:** Define the input parameters for the tool (e.g., `query: string` using Zod schema).
+        -   **`execute` Function:** Implement the `execute` function for this tool.
+            *   This function will receive the `query` from the LLM.
+            *   It should call the `default_api.search_via_perplexity(keyword=query)` function (or a direct Perplexity API call if implemented differently).
+            *   Return the search results (e.g., a string summary or structured data) from `execute`. This result will be sent back to the LLM.
+    -   **Update System Prompt for Chat Agent:**
+        *   Modify the main system prompt for "Synapse" (PRD Section 8.4) to inform the LLM about the availability and appropriate use of the `search_web_perplexity` tool.
+    -   **RAG Context Injection:** Ensure the context retrieved from your existing RAG system (Supabase `entry_chunks`) is explicitly passed to the LLM within the `messages` array *before* the latest user query, so the LLM considers internal knowledge first.
+    -   **Reference:** Vercel AI SDK documentation for `streamText` and `tool` usage.
+
+3.  **Frontend Chat UI Enhancements (Minor for MVP):**
+    -   **(Optional but Recommended):** Consider adding a subtle visual indicator in the chat UI when an external web search is being performed (i.e., when the `search_web_perplexity` tool is active) to manage user expectations regarding response time.
+    -   **Consider Citation/Source Indication:** If possible, instruct the LLM (via the system prompt) to indicate when information is derived from a web search. This can be as simple as the LLM stating "According to a recent web search..."
+
+
+**Notes for Windsurf AI Agent:**
+*   The primary backend work is in `/api/chat.js`.
+*   Focus on correctly structuring the `tools` object and the `execute` function for the `search_web_perplexity` tool.
+*   The Vercel AI SDK handles the multi-step conversation flow (user query -> LLM -> tool call -> your code -> tool response -> LLM -> final user answer).
+*   Ensure the Perplexity API call within the `execute` function is robust (handles potential errors, timeouts).
+
+This phase focuses on integrating one web search tool. Further tools (like Exa) can be added in subsequent phases by replicating the pattern for defining and executing tools.
+
 ## Future Features
 
 ### User Account Management and Authentication with Clerk

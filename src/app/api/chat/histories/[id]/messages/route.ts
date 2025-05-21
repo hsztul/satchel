@@ -34,18 +34,19 @@ export async function POST(request: NextRequest) {
   
   // Parse request body
   const body = await request.json();
+  console.log("POST /messages body:", body);
   const sender = body.sender || "user";
-  let content = body.content;
+  const content = body.content;
   
-  // Validate request
-  if (!sender || !content) {
-    return new Response("Missing sender or content", { status: 400 });
+  // Defensive validation
+  if (!sender || typeof content !== "string" || content.trim() === "") {
+    return new Response("Missing or invalid sender or content", { status: 400 });
   }
   
-  // Ensure content is always a string
-  if (typeof content !== "string") {
-    content = JSON.stringify(content);
-  }
+  // Ensure content is always a string (should already be covered)
+  // if (typeof content !== "string") {
+  //   content = JSON.stringify(content);
+  // }
   
   // Create Supabase client
   const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -253,6 +253,107 @@ export default function ChatUI() {
     setMessages,
     setInput
   } = useChat({ api: "/api/chat" });
+
+  // Helper to flatten tool results into assistant messages
+  interface ChatMessage {
+    id: string;
+    role: 'user' | 'assistant' | 'system' | 'data';
+    content: string;
+    toolResults?: ToolResult[];
+    toolInvocations?: ToolInvocation[];
+    citations?: unknown[];
+    isToolResult?: boolean;
+    parts?: MessagePart[];
+  }
+
+  interface ToolResult {
+    id?: string;
+    role?: string;
+    content?: string;
+    summary?: string;
+    text?: string;
+    citations?: unknown[];
+    isToolResult?: boolean;
+  }
+
+  interface ToolInvocation {
+    toolCallId?: string;
+    result?: {
+      summary?: string;
+      text?: string;
+      citations?: unknown[];
+    };
+  }
+  function flattenMessagesWithToolResults(messages: ChatMessage[]) {
+    const flat: ChatMessage[] = [];
+    for (const msg of messages) {
+      if (msg.role === 'user') {
+        // Always include user messages as-is, but normalize parts for type safety
+        flat.push({ ...msg, parts: toMessageParts(msg.parts) });
+        continue;
+      }
+      // Normalize toolInvocations to toolResults for compatibility
+      let toolResults: ToolResult[] = msg.toolResults || [];
+      if (Array.isArray(msg.toolInvocations) && msg.toolInvocations.length > 0) {
+        toolResults = [
+          ...toolResults,
+          ...msg.toolInvocations.map((inv: ToolInvocation) => ({
+            id: inv.toolCallId || `tool-result-${Math.random()}`,
+            role: "assistant",
+            content: inv.result?.summary || inv.result?.text || "",
+            citations: inv.result?.citations || [],
+            isToolResult: true,
+          }))
+        ];
+      }
+      // If the assistant message has non-empty content, show it
+      if (msg.role === "assistant" && msg.content && msg.content.trim()) {
+        flat.push(msg);
+      }
+      // If there are toolResults (from toolInvocations or toolResults), show them as assistant messages
+      if (msg.role === "assistant" && toolResults.length > 0) {
+        for (const toolResult of toolResults) {
+          if (toolResult.content && toolResult.content.trim()) {
+            flat.push({
+              id: toolResult.id || `tool-result-${Math.random()}`,
+              role: "assistant",
+              content: toolResult.content,
+              citations: toolResult.citations || [],
+              isToolResult: true,
+            });
+          }
+        }
+      }
+    }
+    return flat;
+  }
+
+  // Utility to safely cast or convert unknown parts to MessagePart[]
+function toMessageParts(parts: unknown): MessagePart[] {
+  if (Array.isArray(parts)) {
+    return parts.filter(
+      (p): p is MessagePart =>
+        p && typeof p === 'object' &&
+        (p.type === 'text' || p.type === 'reasoning')
+    );
+  }
+  return [];
+}
+
+// Use the flattened messages for rendering
+  const safeMessages: ChatMessage[] = messages.map(m => ({
+  ...m,
+  parts: toMessageParts(m.parts),
+}));
+const displayMessages = flattenMessagesWithToolResults(safeMessages);
+
+
+
+  // Heuristic: show 'searching the web...' if status is streaming and the last message is from the assistant and looks like a Perplexity search
+  const isWebSearching = status === 'streaming' &&
+    displayMessages.length > 0 &&
+    displayMessages[displayMessages.length - 1].role === 'assistant' &&
+    /According to a recent web search|https?:\/\//i.test(displayMessages[displayMessages.length - 1].content || '');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // State for storing all available chat sessions
@@ -290,18 +391,18 @@ const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 
   // Auto-scroll to bottom when messages update
   // Improved auto-scroll: only scroll when a new message is added by assistant or user
-  const prevMessagesRef = useRef(messages);
+  const prevDisplayMessagesRef = useRef(displayMessages);
   useEffect(() => {
-    const prevMessages = prevMessagesRef.current;
+    const prevMessages = prevDisplayMessagesRef.current;
     if (
-      messages.length > prevMessages.length &&
-      messages[messages.length - 1]?.role !== 'system' &&
-      messages[messages.length - 1]?.role !== 'data'
+      displayMessages.length > prevMessages.length &&
+      displayMessages[displayMessages.length - 1]?.role !== 'system' &&
+      displayMessages[displayMessages.length - 1]?.role !== 'data'
     ) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-    prevMessagesRef.current = messages;
-  }, [messages]);
+    prevDisplayMessagesRef.current = displayMessages;
+  }, [displayMessages]);
 
   // Keep track of which message contents we've already saved to prevent duplicates
   const [savedContentHashes, setSavedContentHashes] = useState<Set<string>>(new Set());
@@ -321,11 +422,15 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
   // Save completed assistant messages - avoiding excessive fetching
   useEffect(() => {
     // Only run if we have a session and are not already saving
-    if (!activeChatId || savingMessage || status !== "ready" || messages.length === 0 || isFetchingRef.current) return;
+    if (!activeChatId || savingMessage || status !== "ready" || displayMessages.length === 0 || isFetchingRef.current) return;
     
     // Check if the last message is from the assistant and needs to be saved
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === "assistant") {
+    const lastMessage = displayMessages[displayMessages.length - 1];
+    if (
+      lastMessage?.role === "assistant" &&
+      typeof lastMessage.content === "string" &&
+      lastMessage.content.trim() !== ""
+    ) {
       // Create a hash of this message to check if we've already saved it
       const contentHash = hashContent("assistant", lastMessage.content);
       
@@ -387,16 +492,66 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                 }
               }
             }
-          } catch {
-            console.error("Failed to save assistant message:");
+          } catch (err) {
+            console.error("Failed to save assistant message:", err);
           } finally {
             setSavingMessage(false);
             isFetchingRef.current = false;
           }
         })();
       }
+    } else if (
+      lastMessage?.role === "assistant" &&
+      typeof lastMessage.content === "string" &&
+      lastMessage.content.trim() === "" &&
+      displayMessages.length > 1
+    ) {
+      // If last assistant message is empty but previous is a tool result, save that instead
+      const prev = displayMessages[displayMessages.length - 2];
+      if (
+        prev?.role === "assistant" &&
+        typeof prev.content === "string" &&
+        prev.content.trim() !== ""
+      ) {
+        const contentHash = hashContent("assistant", prev.content);
+        if (!savedContentHashes.has(contentHash)) {
+          (async () => {
+            setSavingMessage(true);
+            isFetchingRef.current = true;
+            try {
+              let existingMessages = cachedMessagesMap[activeChatId] || [];
+              if (!cachedMessagesMap[activeChatId]) {
+                existingMessages = await fetchMessages(activeChatId);
+                setCachedMessagesMap(prevMap => ({
+                  ...prevMap,
+                  [activeChatId]: existingMessages
+                }));
+              }
+              const assistantMessages = existingMessages.filter(
+                (m: Message) => m.sender === "assistant" && m.content === prev.content
+              );
+              if (assistantMessages.length === 0) {
+                await saveMessage(activeChatId, "assistant", prev.content);
+                setSavedContentHashes(prevSet => new Set(prevSet).add(contentHash));
+                setCachedMessagesMap(prevMap => ({
+                  ...prevMap,
+                  [activeChatId]: [
+                    ...prevMap[activeChatId] || [],
+                    { id: String(Date.now()), sender: "assistant", content: prev.content }
+                  ]
+                }));
+              }
+            } catch (err) {
+              console.error("Failed to save tool result message:", err);
+            } finally {
+              setSavingMessage(false);
+              isFetchingRef.current = false;
+            }
+          })();
+        }
+      }
     }
-  }, [activeChatId, status, messages, savedContentHashes, cachedMessagesMap, savingMessage]);
+  }, [activeChatId, status, displayMessages, savedContentHashes, cachedMessagesMap, savingMessage]);
 
   // Handle form submission
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -491,13 +646,19 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
           </div>
         ) : (
           <>
+            {/* Web search indicator */}
+            {isWebSearching && (
+              <div className="flex items-center justify-center py-2">
+                <span className="text-blue-500 animate-pulse">Searching the web...</span>
+              </div>
+            )}
             <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 bg-white">
-              {messages.length === 0 && (
+              {displayMessages.length === 0 && (
                 <div className="text-gray-400 text-center">No messages yet.</div>
               )}
-              {messages.map((m, idx) => {
+              {displayMessages.map((m, idx) => {
                 const showSave = m.role === "assistant";
-                const prevMessage = idx > 0 ? messages[idx - 1] : null;
+                const prevMessage = idx > 0 ? displayMessages[idx - 1] : null;
                 const handleSave = () => {
                   setConfirmOpenIdx(idx);
                 };
@@ -514,7 +675,7 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                         }`}
                     >
                       {Array.isArray(m.parts)
-                        ? (m.parts as MessagePart[]).map((part, idx) => {
+                        ? toMessageParts(m.parts).map((part, idx) => {
                             if (part.type === 'text') return <span key={idx}>{part.text}</span>;
                             if (part.type === 'reasoning') return <pre key={idx} className="bg-yellow-50 text-yellow-900 rounded p-2 my-1">{part.details?.map((d: ReasoningDetail) => d.type === 'text' ? d.text : '<redacted>').join(' ')}</pre>;
                             return null;

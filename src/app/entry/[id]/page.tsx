@@ -169,7 +169,7 @@ export default function EntryDetailPage({ params }: { params: Promise<{ id: stri
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [entryId, entry?.status]);
+  }, [entryId, entry?.status, entry]);
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4">

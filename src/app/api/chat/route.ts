@@ -2,15 +2,16 @@ import { NextRequest } from "next/server";
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
 import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
+import { tool } from "ai";
+import { SYNAPSE_SYSTEM_PROMPT } from "@/lib/prompts";
+import { searchWebViaPerplexity } from "@/lib/perplexityChat";
 
 // --- CONFIG ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const openaiApiKey = process.env.OPENAI_API_KEY!;
 
-const SYSTEM_PROMPT = `You are \"Synapse,\" an AI co-founder and research assistant for the \"Satchel\" platform. You are knowledgeable, insightful, and slightly informal but always professional. You have access to a collection of processed articles and company research. When answering questions, ground your responses in the provided context. If the context doesn't contain the answer, say so. Be proactive in suggesting connections or implications for startup ideas if appropriate. Your goal is to help your human co-founders think creatively and strategically using the information within Satchel.
-
-When you use information directly from the provided context, you MUST cite the source using its numerical identifier (e.g., 'as stated in [1]', or '...according to source [2].'). If multiple sources support a statement, you can cite them like [1, 2]. At the end of your response, list all numerical source IDs you cited with their titles and links.`;
 
 // --- EMBEDDING CONFIG ---
 const EMBEDDING_MODEL = "text-embedding-ada-002";
@@ -123,14 +124,37 @@ export async function POST(req: NextRequest) {
   // 4. Call ai-sdk's streamText for streaming completion with citation instructions
   const result = await streamText({
     model: openai("gpt-4o"),
-    system: SYSTEM_PROMPT,
+    system: SYNAPSE_SYSTEM_PROMPT,
     messages: [
       ...messages.slice(-8),
       { role: "system", content: `CONTEXT:\n${fullContext}` },
     ],
     maxTokens: 700,
     temperature: 0.6,
+    tools: {
+      search_web_perplexity: tool({
+        description: "Searches the web via Perplexity for current/external information. Use this tool if the provided CONTEXT is insufficient or outdated. Returns a summary and a list of citations/URLs.",
+        parameters: z.object({ query: z.string().describe("The web search query") }),
+        async execute({ query }) {
+          try {
+            const result = await searchWebViaPerplexity(query);
+            return {
+              summary: result.text,
+              citations: result.citations,
+            };
+          } catch (err) {
+            return {
+              summary: "[Perplexity web search failed. No results returned.]",
+              citations: [],
+              error: err instanceof Error ? err.message : "Unknown error"
+            };
+          }
+        },
+      })
+    },
+
   });
 
   return result.toDataStreamResponse();
 }
+
