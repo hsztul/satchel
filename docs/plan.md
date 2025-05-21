@@ -260,11 +260,11 @@ Reference: PRD Section 5.4.2.
 ### Phase 13: Chat Augmentation with Web Search Tools (Perplexity Integration)
 
 1.  **Update API Keys & Configuration:**
-    - [ ]  **Action:** Ensure Perplexity API key is securely stored as an environment variable (if not already for company research).
+    - [x]  **Action:** Ensure Perplexity API key is securely stored as an environment variable (if not already for company research).
 
 2.  **Modify `/api/chat` for Tool Calling (Vercel AI SDK):**
-    - [ ]   **Action:** Refactor the existing `/api/chat` Next.js API route to use the `streamText` (or `generateText`) function from the Vercel AI SDK, which supports tool calling.
-    - [ ]   **Define `search_web_perplexity` Tool:**
+    - [x]   **Action:** Refactor the existing `/api/chat` Next.js API route to use the `streamText` (or `generateText`) function from the Vercel AI SDK, which supports tool calling.
+    - [x]   **Define `search_web_perplexity` Tool:**
         -   Inside the `tools` option of `streamText`, define a new tool named `search_web_perplexity`.
         -   **Description:** Provide a clear description for the LLM on what the tool does (searches the web via Perplexity for current/external info) and when to use it (if RAG context is insufficient or outdated). (Refer to PRD Section 8.4 for base persona, and add tool usage instructions).
         -   **Parameters:** Define the input parameters for the tool (e.g., `query: string` using Zod schema).

@@ -44,7 +44,7 @@ type Citation = {
 };
 
 // Utility to parse citations from text and create links
-function parseCitations(text: string): {
+function parseCitations(text: string, externalCitations?: { url: string; title?: string }[]): {
   parsedText: React.ReactNode[];
   citations: Citation[];
 } {
@@ -52,7 +52,20 @@ function parseCitations(text: string): {
   const citationRegex = /\[(\d+(?:,\s*\d+)*)\]/g;
   const parts: React.ReactNode[] = [];
   const citationsMap: Record<number, Citation> = {};
-  
+
+  // If external citations are provided (e.g., from Perplexity), populate the map
+  if (externalCitations && Array.isArray(externalCitations)) {
+    externalCitations.forEach((c, i) => {
+      const idx = i + 1;
+      citationsMap[idx] = {
+        id: idx,
+        title: c.title || `Source ${idx}`,
+        url: c.url,
+        refCount: 0,
+      };
+    });
+  }
+
   // Split text by citations
   let lastIndex = 0;
   let match;
@@ -106,10 +119,13 @@ function parseCitations(text: string): {
             if (citationsMap[id]) {
               citationsMap[id].refCount++;
             } else {
-              // Create placeholder if citation not found in source list
-              citationsMap[id] = { id, title: `Source ${id}`, url: `/entry/${id}`, refCount: 1 };
+              // If externalCitations is provided, don't fallback to /entry/{id}
+              if (externalCitations && Array.isArray(externalCitations)) {
+                citationsMap[id] = { id, title: `Source ${id}`, url: '#', refCount: 1 };
+              } else {
+                citationsMap[id] = { id, title: `Source ${id}`, url: `/entry/${id}`, refCount: 1 };
+              }
             }
-            
             return (
               <span key={id}>
                 {idx > 0 && ", "}
@@ -142,9 +158,26 @@ function parseCitations(text: string): {
   return { parsedText: parts, citations };
 }
 
+// Helper: detect Perplexity citations and transform to correct array
+type CitationUrl = { url: string; title?: string };
+function isPerplexityCitation(obj: unknown): obj is { url: string; title?: string } {
+  if (typeof obj !== 'object' || obj === null) return false;
+  // Use type assertion only after checking
+  const maybe = obj as { url?: unknown };
+  return typeof maybe.url === 'string';
+}
+
+function getPerplexityCitations(citations: unknown): CitationUrl[] | undefined {
+  if (!Array.isArray(citations) || citations.length === 0) return undefined;
+  if (isPerplexityCitation(citations[0])) {
+    return (citations as { url: string; title?: string }[]).map(c => ({ url: c.url, title: c.title }));
+  }
+  return undefined;
+}
+
 // Component to render message with citations
-function MessageWithCitations({ content }: { content: string }) {
-  const { parsedText, citations } = parseCitations(content);
+function MessageWithCitations({ content, externalCitations }: { content: string, externalCitations?: { url: string; title?: string }[] }) {
+  const { parsedText, citations } = parseCitations(content, externalCitations);
   
   return (
     <div>
@@ -681,7 +714,7 @@ const [cachedMessagesMap, setCachedMessagesMap] = useState<Record<string, Messag
                             return null;
                           })
                         : m.role === "assistant" 
-                          ? <MessageWithCitations content={m.content} />
+                          ? <MessageWithCitations content={m.content} externalCitations={getPerplexityCitations(m.citations)} />
                           : m.content}
 
                       {showSave && (
