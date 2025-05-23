@@ -374,7 +374,9 @@ export default function ChatUI() {
     switch (toolInvocation.toolName) {
       case 'search_web_perplexity':
         switch (toolInvocation.state) {
+          case 'call':
           case 'running':
+          case 'partial-call':
             return (
               <div key={callId} className="bg-blue-50 border border-blue-200 rounded-lg p-3 my-2">
                 <div className="flex items-center gap-2">
@@ -403,7 +405,34 @@ export default function ChatUI() {
                 )}
               </div>
             );
+          default:
+            // Debug: show unknown states
+            return (
+              <div key={callId} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 my-2">
+                <div className="text-yellow-700 text-sm">
+                  Tool: {toolInvocation.toolName}, State: {toolInvocation.state}
+                </div>
+                {toolInvocation.args && (
+                  <pre className="text-xs mt-1 text-yellow-600">
+                    {JSON.stringify(toolInvocation.args, null, 2)}
+                  </pre>
+                )}
+              </div>
+            );
         }
+        break;
+      default:
+        // Debug: show unknown tools
+        return (
+          <div key={callId} className="bg-gray-50 border border-gray-200 rounded-lg p-3 my-2">
+            <div className="text-gray-700 text-sm">
+              Unknown tool: {toolInvocation.toolName}, State: {toolInvocation.state}
+            </div>
+            <pre className="text-xs mt-1 text-gray-600">
+              {JSON.stringify(toolInvocation, null, 2)}
+            </pre>
+          </div>
+        );
     }
     return null;
   };
