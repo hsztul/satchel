@@ -14,10 +14,10 @@ export async function GET(request: NextRequest) {
   // Create Supabase client
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   
-  // Query messages
+  // Query messages (include citations)
   const { data, error } = await supabase
     .from("chat_messages")
-    .select("id, sender, content, created_at")
+    .select("id, sender, content, created_at, citations")
     .eq("chat_history_id", chat_history_id)
     .order("created_at", { ascending: true });
     
@@ -37,24 +37,20 @@ export async function POST(request: NextRequest) {
   console.log("POST /messages body:", body);
   const sender = body.sender || "user";
   const content = body.content;
+  const citations = body.citations ?? null;
   
   // Defensive validation
   if (!sender || typeof content !== "string" || content.trim() === "") {
     return new Response("Missing or invalid sender or content", { status: 400 });
   }
   
-  // Ensure content is always a string (should already be covered)
-  // if (typeof content !== "string") {
-  //   content = JSON.stringify(content);
-  // }
-  
   // Create Supabase client
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   
-  // Insert message
+  // Insert message (include citations if present)
   const { data, error } = await supabase
     .from("chat_messages")
-    .insert([{ chat_history_id, sender, content }])
+    .insert([{ chat_history_id, sender, content, citations }])
     .select()
     .single();
     
