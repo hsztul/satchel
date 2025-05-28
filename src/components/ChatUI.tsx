@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useChat } from "@ai-sdk/react";
 import ChatHistorySidebar from "./ChatHistorySidebar";
 import { StreamingMessageWithCitations } from "./StreamingMessageWithCitations";
+import { Menu } from 'lucide-react'; // Import Menu icon
 
 import { Toaster } from "./ui/sonner";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -106,6 +107,7 @@ export default function ChatUI() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmOpenIdx, setConfirmOpenIdx] = useState<number | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State for mobile sidebar
 
   // Setup the chat hook with proper tool handling
   const { 
@@ -291,15 +293,60 @@ export default function ChatUI() {
 
   return (
     <div className="fixed inset-x-0 top-16 bottom-0 flex w-full h-[calc(100vh-4rem)] bg-gray-50 z-40 overflow-hidden">
+      {/* Mobile Hamburger Menu */}
+      <div className="md:hidden absolute top-4 left-4 z-50">
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="p-2 rounded-md text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+        >
+          <Menu size={24} />
+        </button>
+      </div>
+
       {/* Chat History Sidebar */}
-      <ChatHistorySidebar
-        activeChatId={activeChatId}
-        onSelectChat={loadChatMessages}
-        onCreateChat={handleCreateNewChat}
-      />
+      <div
+        className={`
+          fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out
+          md:relative md:translate-x-0 md:flex md:w-72 
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          bg-gray-100 border-r border-gray-200 h-full overflow-y-auto
+        `}
+      >
+        <ChatHistorySidebar
+          activeChatId={activeChatId}
+          onSelectChat={(chatId) => {
+            loadChatMessages(chatId);
+            setIsSidebarOpen(false); // Close sidebar on selection (mobile)
+          }}
+          onCreateChat={async () => {
+            const newChatId = await handleCreateNewChat();
+            // loadChatMessages(newChatId); // Already handled in handleCreateNewChat
+            setIsSidebarOpen(false); // Close sidebar on new chat (mobile)
+            return newChatId;
+          }}
+        />
+      </div>
+
+      {/* Overlay for mobile when sidebar is open */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
 
       {/* Main Chat Area */}
-      <section className="flex-1 flex flex-col bg-white border-l border-gray-200 overflow-hidden">
+      <section className="flex-1 flex flex-col bg-white overflow-hidden">
+        {/* Header for Chat (Optional - can add chat title or hamburger for desktop if needed) */}
+        <div className="p-4 border-b border-gray-200 md:hidden flex items-center h-16">
+          {/* This div is a placeholder for the hamburger menu space, content can be added here if needed */}
+          <span className="font-semibold text-lg ml-12"> {/* Adjusted margin for hamburger */}
+            {activeChatId && messages.length > 0 && activeChatId !== 'new' ? 
+              messages.find(s => s.id === activeChatId)?.content.substring(0,20) || "Chat" 
+              : "Synapse Chat"}
+          </span>
+        </div>
+
         {activeChatId ? (
           <>
             {/* Messages */}
