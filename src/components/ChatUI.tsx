@@ -3,6 +3,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { useChat } from "@ai-sdk/react";
 import ChatHistorySidebar from "./ChatHistorySidebar";
+import { StreamingMessageWithCitations } from "./StreamingMessageWithCitations";
 
 import { Toaster } from "./ui/sonner";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -42,127 +43,6 @@ async function saveMessage(sessionId: string, content: string, sender: string, c
   });
 }
 
-// Types for citations
-type Citation = {
-  id: number;
-  title: string;
-  url: string;
-  refCount: number;
-};
-
-// Utility to parse citations from text and create links
-function parseCitations(text: string, externalCitations?: { url: string; title?: string }[]): {
-  parsedText: React.ReactNode[];
-  citations: Citation[];
-} {
-  // Find all citation references in format [n] or [n, m]
-  const citationRegex = /\[(\d+(?:,\s*\d+)*)\]/g;
-  const parts: React.ReactNode[] = [];
-  const citationsMap: Record<number, Citation> = {};
-
-  // If external citations are provided (e.g., from Perplexity), populate the map
-  if (externalCitations && Array.isArray(externalCitations)) {
-    externalCitations.forEach((c, i) => {
-      const idx = i + 1;
-      citationsMap[idx] = {
-        id: idx,
-        title: c.title || `Source ${idx}`,
-        url: c.url,
-        refCount: 0,
-      };
-    });
-  }
-
-  // Split text by citations
-  let lastIndex = 0;
-  let match;
-  
-  // Find citation list section at the end of the message
-  const sourceListRegex = /\n*Sources?:?\n((?:\[\d+\]:.*(?:\n|$))+)/i;
-  const sourceListMatch = text.match(sourceListRegex);
-  
-  let contentText = text;
-  let sourcesText = "";
-  
-  // Extract the sources section if it exists
-  if (sourceListMatch) {
-    contentText = text.substring(0, sourceListMatch.index);
-    sourcesText = sourceListMatch[1];
-    
-    // Parse sources
-    const sourceRegex = /\[(\d+)\]:\s*(.*?)\s*(?:\((https?:\/\/[^\)]+)\))?(?:\n|$)/g;
-    let sourceMatch;
-    while ((sourceMatch = sourceRegex.exec(sourcesText)) !== null) {
-      const id = parseInt(sourceMatch[1]);
-      const title = sourceMatch[2];
-      const url = sourceMatch[3] || `/entry/${id}`; // Default to local entry if URL not provided
-      
-      citationsMap[id] = {
-        id,
-        title,
-        url,
-        refCount: 0
-      };
-    }
-  }
-  
-  // Process inline citations
-  while ((match = citationRegex.exec(contentText)) !== null) {
-    // Add text before the citation
-    if (match.index > lastIndex) {
-      parts.push(String(contentText.substring(lastIndex, match.index)));
-    }
-    
-    // Process the citation
-    const citationIds = match[1].split(/,\s*/).map(id => parseInt(id.trim()));
-    
-    // Create a citation link
-    parts.push(
-      <span key={match.index} className="inline-flex items-center gap-1">
-        <span className="text-xs text-blue-600 font-medium">
-          [
-          {citationIds.map((id, idx) => {
-            // Track citation usage
-            if (citationsMap[id]) {
-              citationsMap[id].refCount++;
-            }
-            
-            return (
-              <span key={id}>
-                {idx > 0 && ', '}
-                <a
-                  href={citationsMap[id]?.url || '#'}
-                  className="hover:underline"
-                  target={citationsMap[id]?.url?.startsWith('http') ? '_blank' : '_self'}
-                  rel={citationsMap[id]?.url?.startsWith('http') ? 'noopener noreferrer' : undefined}
-                >
-                  {id}
-                </a>
-              </span>
-            );
-          })}
-          ]
-        </span>
-      </span>
-    );
-    
-    lastIndex = match.index + match[0].length;
-  }
-  
-  // Add remaining text
-  if (lastIndex < contentText.length) {
-    parts.push(String(contentText.substring(lastIndex)));
-  }
-  
-  // Return only citations that were actually referenced
-  const referencedCitations = Object.values(citationsMap).filter(c => c.refCount > 0);
-  
-  return {
-    parsedText: parts,
-    citations: referencedCitations
-  };
-}
-
 // Helper: detect Perplexity citations and transform to correct array
 type CitationUrl = { url: string; title?: string };
 
@@ -180,46 +60,6 @@ function getPerplexityCitations(citations: unknown): CitationUrl[] | undefined {
     return citations;
   }
   return undefined;
-}
-
-// Component to render message with citations
-interface MessageWithCitationsProps {
-  content: string;
-  externalCitations?: { url: string; title?: string }[];
-}
-
-function MessageWithCitations({ content, externalCitations }: MessageWithCitationsProps) {
-  const { parsedText, citations } = parseCitations(content, externalCitations);
-  
-  return (
-    <div>
-      <div className="whitespace-pre-wrap">
-        {parsedText.map((part, index) => (
-          <span key={index}>{part}</span>
-        ))}
-      </div>
-      
-      {citations.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-200">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Sources:</h4>
-          <ul className="text-xs text-gray-600 space-y-1">
-            {citations.map(citation => (
-              <li key={citation.id}>
-                <a 
-                  href={citation.url} 
-                  className="text-blue-600 hover:underline"
-                  target={citation.url.startsWith('http') ? '_blank' : '_self'}
-                  rel={citation.url.startsWith('http') ? 'noopener noreferrer' : undefined}
-                >
-                  [{citation.id}] {citation.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // Fetch all chat sessions
@@ -397,9 +237,10 @@ export default function ChatUI() {
                 <div className="text-green-700 text-sm mb-2">✓ Web search completed</div>
                 {result?.summary && (
                   <div className="text-green-800 text-sm leading-relaxed">
-                    <MessageWithCitations 
+                    <StreamingMessageWithCitations 
                       content={result.summary} 
                       externalCitations={getPerplexityCitations(result.citations ?? [])}
+                      isStreaming={false}
                     />
                   </div>
                 )}
@@ -485,9 +326,10 @@ export default function ChatUI() {
                                 case 'text':
                                   return (
                                     <div key={partIdx} className="whitespace-pre-wrap">
-                                      <MessageWithCitations 
+                                      <StreamingMessageWithCitations 
                                         content={part.text ?? ''} 
                                         externalCitations={getPerplexityCitations(message.citations ?? [])}
+                                        isStreaming={status === 'streaming' && idx === messages.length - 1}
                                       />
                                     </div>
                                   );
@@ -499,9 +341,10 @@ export default function ChatUI() {
                             })
                           ) : (
                             // Fallback for messages without parts
-                            <MessageWithCitations 
+                            <StreamingMessageWithCitations 
                               content={message.content} 
                               externalCitations={getPerplexityCitations(message.citations ?? [])}
+                              isStreaming={status === 'streaming' && idx === messages.length - 1}
                             />
                           )}
                           
